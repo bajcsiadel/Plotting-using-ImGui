@@ -5,7 +5,7 @@ OBJS = $(addprefix ../build/, $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 HEADERS = globaldata.h drawing.h  CImg.h
 UNAME_S := $(shell uname -s)
 MKDIR_P = mkdir -p
-DIRECTORIES = ../results/movies ../results/stats ../results/outs
+DIRECTORIES = ../build
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
@@ -32,9 +32,6 @@ ifeq ($(findstring MINGW,$(UNAME_S)),MINGW)
 	CXXFLAGS += -Wall -Wformat -Wunused-variable
 endif
 
-${OUT_DIR}:
-	${MKDIR_P} ${OUT_DIR}
-
 ../build/%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
@@ -54,4 +51,6 @@ plot: $(HEADERS) $(OBJS)
 
 clean:
 	rm -f ../build/plot $(OBJS)
+	@echo ""
+	${MKDIR_P} ${DIRECTORIES}
 	@echo ""

@@ -217,7 +217,7 @@ void initGraphWindow(bool* show)
 
     poz_x += 10;
     x_size -= 7;
-    poz_y += 60;
+    poz_y += 45;
 
     xc = ImColor(colors[6]);
     yc = ImColor(colors[7]);
@@ -577,7 +577,7 @@ void readImage(const char* imagePath, GLuint* renderedTexture)
 void readImages()
 {
     // https://www.flaticon.com/packs/music
-    readImage("../img/play.svg", &global.window.play_image);
+    readImage("../img/play.png", &global.window.play_image);
     readImage("../img/pause.svg", &global.window.pause_image);
     readImage("../img/rewind.svg", &global.window.rewind_image);
     readImage("../img/fast-forward.svg", &global.window.fastforward_image);
