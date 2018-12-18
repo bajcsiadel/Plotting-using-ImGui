@@ -5,7 +5,8 @@
 //  Created by András Libál on 8/7/18.
 //  Copyright © 2018 András Libál. All rights reserved.
 //
-
+#include "imgui.h"
+#include "imgui_internal.h"
 #include "globaldata.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,10 +34,10 @@ void initialize_global_data()
     global.radius_vertex = 0.01;
     global.radius_particle = 0.01;
     
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany00ero.mvi", 50);
+    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany25ero.mvi", 50);
     global.moviefilename[50] = '\0';
 
-    strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany00ero.txt", 49);
+    strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany25ero.txt", 49);
     global.statfilename[49] = '\0';
     
     global.N_frames = 0;
@@ -53,7 +54,7 @@ void initialize_global_data()
 void open_movie_file()
 {
 
-    global.moviefile = fopen(global.moviefilename, "rb");
+    global.moviefile = ImFileOpen(global.moviefilename, "rb");
     if (global.moviefile == NULL)
     {
         printf("\033[1;31mCannot find/open movie file: %s\033[0m\n", global.moviefilename);
@@ -154,7 +155,7 @@ void read_moviefile_data()
  
     //re-open the movie file
     fclose(global.moviefile);
-    global.moviefile = fopen(global.moviefilename, "rb");
+    global.moviefile = ImFileOpen(global.moviefilename, "rb");
 
     //read the actual data
     //reads in all the data from the movie file
@@ -172,7 +173,7 @@ void read_statisticsfile_data()
 {
     int reserved;
 
-    global.statfile = fopen(global.statfilename, "r");
+    global.statfile = ImFileOpen(global.statfilename, "r");
     if (global.statfile == NULL)
     {
         printf("\033[1;31mCannot find/open statistics file: %s\033[0m\n", global.statfilename);
@@ -217,12 +218,12 @@ void write_frame_data_to_file()
     frame = 35;
 
 
-    outfile[0] = fopen("hex80k_f35_verttype0.txt", "wt");
-    outfile[1] = fopen("hex80k_f35_verttype1.txt", "wt");
-    outfile[2] = fopen("hex80k_f35_verttype2.txt", "wt");
-    outfile[3] = fopen("hex80k_f35_verttype3.txt", "wt");
-    outfile[4] = fopen("hex80k_f35_verttype4.txt", "wt");
-    outfile[5] = fopen("hex80k_f35_verttypegs.txt", "wt");
+    outfile[0] = ImFileOpen("hex80k_f35_verttype0.txt", "wt");
+    outfile[1] = ImFileOpen("hex80k_f35_verttype1.txt", "wt");
+    outfile[2] = ImFileOpen("hex80k_f35_verttype2.txt", "wt");
+    outfile[3] = ImFileOpen("hex80k_f35_verttype3.txt", "wt");
+    outfile[4] = ImFileOpen("hex80k_f35_verttype4.txt", "wt");
+    outfile[5] = ImFileOpen("hex80k_f35_verttypegs.txt", "wt");
 
     for(i = 0; i < global.N_objects; i++)
     {
