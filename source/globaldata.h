@@ -105,14 +105,16 @@ struct global_struct
     float radius_particle;
     float radius_vertex;
     
-    char moviefilename[100];
+    char *moviefilename;
     FILE *moviefile;
     
     int N_frames;
     int current_frame;
     
-    char statfilename[100];
+    char *statfilename;
     FILE *statfile;
+
+    int length;
 
     int N_stats;
     

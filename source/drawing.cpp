@@ -368,6 +368,7 @@ void calculateCoordinatesOnGraph(int i)
 
 void initSettingsMenuBar()
 {
+    int length;
     if (BeginMenuBar())
     {
         if (BeginMenu("File"))
@@ -400,15 +401,38 @@ void initSettingsMenuBar()
         EndMenuBar();
     }
 
-    global.settings.dlg.chooseFileDialog(global.settings.open_movie);              // see other dialog types and the full list of arguments for advanced usage
-    if (strlen(global.settings.dlg.getChosenPath())>0) {
-        ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
-        global.settings.open_movie = false;
+    if (global.settings.open_movie)
+    {
+        global.video.play = false;
+        global.settings.dlg.chooseFileDialog(global.settings.open_movie);
+        if ((length = strlen(global.settings.dlg.getChosenPath())) > 0)
+        {
+            if (strncmp(global.settings.dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
+            {
+                if (length > global.length)
+                {
+                    global.length = length;
+                    global.moviefilename = (char *) realloc(global.moviefilename, length);
+                    global.statfilename = (char *) realloc(global.statfilename, length);
+                }
+                strncpy(global.moviefilename, global.settings.dlg.getChosenPath(), length);
+                global.moviefilename[length] = '\0';
+                read_moviefile_data();
+                printf("%s\n", global.moviefilename);
+                global.current_frame = 0;
+            }
+            global.settings.open_movie = false;
+            global.video.play = true;
+        }
     }
-    global.settings.dlg.chooseFileDialog(global.settings.open_stats);              // see other dialog types and the full list of arguments for advanced usage
-    if (strlen(global.settings.dlg.getChosenPath())>0) {
-        ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
-        global.settings.open_stats = false;
+    if (global.settings.open_stats)
+    {
+        global.settings.dlg.chooseFileDialog(global.settings.open_stats);
+        if ((length = strlen(global.settings.dlg.getChosenPath())) > 0)
+        {
+            ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
+            global.settings.open_stats = false;
+        }
     }
 }
 
@@ -624,7 +648,7 @@ void ShowHelpMarker(const char *desc)
 void AddFileLocation(const char *filename)
 {
     char *ptr;
-    ptr = realpath(global.statfilename, NULL);
+    ptr = realpath(filename, NULL);
     PushTextWrapPos(0.0f);
     TextUnformatted(ptr);
     PopTextWrapPos();

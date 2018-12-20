@@ -34,9 +34,12 @@ void initialize_global_data()
     global.radius_vertex = 0.01;
     global.radius_particle = 0.01;
     
+    global.length = 100;
+    global.moviefilename = (char *) malloc(global.length);
     strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany00ero.mvi", 50);
     global.moviefilename[50] = '\0';
 
+    global.statfilename = (char *) malloc(global.length);
     strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany00ero.txt", 49);
     global.statfilename[49] = '\0';
     
