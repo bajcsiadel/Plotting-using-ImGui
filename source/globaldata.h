@@ -75,13 +75,8 @@ struct settings_window
     int poz_x;
     int poz_y;
 
-    bool open_movie;
-    bool open_stats;
-    
-    bool save_movie;
-    bool save_stats;
-
-    ImGuiFs::Dialog dlg;
+    int open; // 0 - movie
+              // 1 - stats
 };
 
 struct global_struct

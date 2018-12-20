@@ -369,15 +369,33 @@ void calculateCoordinatesOnGraph(int i)
 void initSettingsMenuBar()
 {
     int length;
+    static ImGuiFs::Dialog dlg;
+    bool open_movie, open_stats;
+    // bool save_movie, save_stats;
+
+    open_movie = false;
+    open_stats = false;
+
+    // save_movie = false;
+    // save_stats = false;
+    
     if (BeginMenuBar())
     {
         if (BeginMenu("File"))
         {
             if (BeginMenu("Open"))
             {
-                if (MenuItem("Movie file", "CTRL+M")) global.settings.open_movie = true;
+                if (MenuItem("Movie file", "CTRL+M")) 
+                {
+                    open_movie = true;
+                    global.settings.open = 0;
+                }
                 
-                if (MenuItem("Statistics file", "CTRL+T")) global.settings.open_stats = true;
+                if (MenuItem("Statistics file", "CTRL+T"))
+                {
+                    open_stats = true;
+                    global.settings.open = 1;
+                }
                 EndMenu();
             }
             if (BeginMenu("Save"))
@@ -400,39 +418,33 @@ void initSettingsMenuBar()
         }
         EndMenuBar();
     }
-
-    if (global.settings.open_movie)
+    if (open_movie || open_stats) global.video.play = false;
+    dlg.chooseFileDialog(open_movie || open_stats);
+    if ((length = strlen(dlg.getChosenPath())) > 0)
     {
-        global.video.play = false;
-        global.settings.dlg.chooseFileDialog(global.settings.open_movie);
-        if ((length = strlen(global.settings.dlg.getChosenPath())) > 0)
+        if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
         {
-            if (strncmp(global.settings.dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
+            if (length > global.length)
             {
-                if (length > global.length)
-                {
-                    global.length = length;
-                    global.moviefilename = (char *) realloc(global.moviefilename, length);
-                    global.statfilename = (char *) realloc(global.statfilename, length);
-                }
-                strncpy(global.moviefilename, global.settings.dlg.getChosenPath(), length);
+                global.length = length;
+                global.moviefilename = (char *) realloc(global.moviefilename, length);
+                global.statfilename = (char *) realloc(global.statfilename, length);
+            }
+            if (global.settings.open)
+            {
+                strncpy(global.statfilename, dlg.getChosenPath(), length);
+                global.statfilename[length] = '\0';
+                read_statisticsfile_data();
+                open_stats = false;
+            } else {
+                strncpy(global.moviefilename, dlg.getChosenPath(), length);
                 global.moviefilename[length] = '\0';
                 read_moviefile_data();
-                printf("%s\n", global.moviefilename);
-                global.current_frame = 0;
+                open_movie = false;
             }
-            global.settings.open_movie = false;
-            global.video.play = true;
+            global.current_frame = 0;
         }
-    }
-    if (global.settings.open_stats)
-    {
-        global.settings.dlg.chooseFileDialog(global.settings.open_stats);
-        if ((length = strlen(global.settings.dlg.getChosenPath())) > 0)
-        {
-            ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
-            global.settings.open_stats = false;
-        }
+        global.video.play = true;
     }
 }
 
