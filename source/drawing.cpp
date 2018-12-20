@@ -4,13 +4,17 @@
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl2.h"
+#include "imguifilesystem.h"
+
 #include <stdio.h>
+#include <string.h>
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include "CImg.h"
 
 using namespace cimg_library;
 using namespace ImGui;
+using namespace ImGuiFs;
 
 const ImVec4 colors[] = {
     ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0
@@ -76,10 +80,29 @@ void initWindow()
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
-    
+
     global.window.clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     global.window.margin = 10;
-    global.window.button_size = 28;
+    global.video.button_size = 28;
+
+    global.video.height = global.video.width 
+        = global.Windowsize_y - 2 * global.window.margin;
+    global.video.play = true;
+
+    global.movie.width = global.video.width - 2 * global.window.margin;
+    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - 20; // filenamr height
+    
+    global.movie_proportion_x = ((double) global.movie.width - 20) / global.SX;
+    global.movie_proportion_y = ((double) global.movie.height - 20) / global.SY;
+
+    global.graph.width = global.Windowsize_x - 3 * global.window.margin - global.video.width;
+    global.graph.height = global.video.height / 2;
+
+    global.settings.width = global.graph.width;
+    global.settings.height = global.Windowsize_y - 3 * global.window.margin - global.graph.height;
+
+    global.settings.poz_x = global.window.margin + global.video.width + global.window.margin;
+    global.settings.poz_y = 2 * global.window.margin + global.graph.height;
 }
 
 void initMovie(bool show_video_window)
@@ -88,13 +111,7 @@ void initMovie(bool show_video_window)
     float x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
 
-    global.window.movie_window_width = global.window.video_window_width - 2 * global.window.margin;
-    global.window.movie_window_height = global.window.video_window_height - 5 * global.window.margin - global.window.button_size - 20; // filenamr height
-    
-    global.movie_proportion_x = ((double) global.window.movie_window_width - 20) / global.SX;
-    global.movie_proportion_y = ((double) global.window.movie_window_height - 20) / global.SY;
-
-    BeginChild("Test", ImVec2(global.window.movie_window_width, global.window.movie_window_height), true);
+    BeginChild("Test", ImVec2(global.movie.width, global.movie.height), true);
     draw_list = GetWindowDrawList();
     n = 0;
     for (i = 0; i < global.N_objects; i++)
@@ -137,53 +154,49 @@ void initMovie(bool show_video_window)
     EndChild();
 }
 
-void initVideoWindow(bool* show_video_window)
+void initVideoWindow(bool *show_video_window)
 {
-    global.window.video_window_height = global.window.video_window_width 
-        = global.Windowsize_y - 2 * global.window.margin;
-
-    static bool play = true;
     SetNextWindowPos(ImVec2(global.window.margin, global.window.margin));
-    SetNextWindowSize(ImVec2(global.window.video_window_width, global.window.video_window_height));
+    SetNextWindowSize(ImVec2(global.video.width, global.video.height));
     Begin("Video", show_video_window,  
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGuiWindowFlags_NoResize/* | ImGuiWindowFlags_NoCollapse */| 
+        ImGuiWindowFlags_NoMove);
     AddFileLocation(global.moviefilename);
     initMovie(true);
     
     Separator();
-    if (ImageButton((void*) (intptr_t)global.window.back_image, ImVec2(global.window.button_size, global.window.button_size)))
+    if (ImageButton((void*) (intptr_t)global.video.back_image, ImVec2(global.video.button_size, global.video.button_size)))
         global.current_frame = 0;
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.window.rewind_image, ImVec2(global.window.button_size, global.window.button_size)))
+    if (ImageButton((void*) (intptr_t)global.video.rewind_image, ImVec2(global.video.button_size, global.video.button_size)))
         {}
     SameLine();
 
-    if (play)
-        ImageButton((void*) (intptr_t)global.window.pause_image, ImVec2(global.window.button_size, global.window.button_size));
+    if (global.video.play)
+        ImageButton((void*) (intptr_t)global.video.pause_image, ImVec2(global.video.button_size, global.video.button_size));
     else
-        ImageButton((void*) (intptr_t)global.window.play_image, ImVec2(global.window.button_size, global.window.button_size));
+        ImageButton((void*) (intptr_t)global.video.play_image, ImVec2(global.video.button_size, global.video.button_size));
     if (IsItemClicked())
-        play = !play;
+        global.video.play = !global.video.play;
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.window.fastforward_image, ImVec2(global.window.button_size, global.window.button_size)))
+    if (ImageButton((void*) (intptr_t)global.video.fastforward_image, ImVec2(global.video.button_size, global.video.button_size)))
         {}
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.window.next_image, ImVec2(global.window.button_size, global.window.button_size)))
+    if (ImageButton((void*) (intptr_t)global.video.next_image, ImVec2(global.video.button_size, global.video.button_size)))
         global.current_frame = global.N_frames - 1;
     SameLine();
 
     PushItemWidth(-50);
     SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
     End();
-    if (play)
+    if (global.video.play)
         global.current_frame = (global.current_frame < global.N_frames - 1 ? global.current_frame + 1 : 0);
 }
 
-void initGraphWindow(bool* show)
+void initGraphWindow(bool *show)
 {
     int x_size, y_size;
     int poz_x, poz_y;
@@ -196,23 +209,20 @@ void initGraphWindow(bool* show)
     ImDrawList *draw_list;
 
     ShowDemoWindow();
-    global.window.graph_window_width = global.Windowsize_x - 3 * global.window.margin - global.window.video_window_width;
-    global.window.graph_window_height = global.window.video_window_height / 2;
-
-    poz_x = global.window.margin + global.window.video_window_width + global.window.margin;
+    poz_x = global.window.margin + global.video.width + global.window.margin;
     poz_y = global.window.margin;
 
     SetNextWindowPos(ImVec2(poz_x, poz_y));
-    SetNextWindowSize(ImVec2(global.window.graph_window_width, global.window.graph_window_height));
+    SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
     Begin("Graph", show,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
-        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGuiWindowFlags_NoMove);
     // SetNextWindowPos(ImVec2(2 * global.window.margin, global.window.margin));
 
     AddFileLocation(global.statfilename);
 
-    x_size = global.window.graph_window_width - 2.5 * global.window.margin;
-    y_size = global.window.graph_window_height - 12 * global.window.margin;
+    x_size = global.graph.width - 2.5 * global.window.margin;
+    y_size = global.graph.height - 12 * global.window.margin;
     BeginChild("", ImVec2(x_size, y_size), true);
     draw_list = GetWindowDrawList();
 
@@ -265,7 +275,7 @@ void initGraphWindow(bool* show)
         if (t_frame >= t1 && t_frame <= t2)
         {
             j = i;  // t_frame value is between (i - 1) and i
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.window.graph_window_height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
         }
     }
 
@@ -275,14 +285,14 @@ void initGraphWindow(bool* show)
         {
             j = 0;
             t_frame += 2;
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.window.graph_window_height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
         }
 
         if (t_frame > tn)
         {
             j = global.N_stats - 1;
             t_frame -= 2;
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.window.graph_window_height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
         }
     }
 
@@ -356,32 +366,17 @@ void calculateCoordinatesOnGraph(int i)
 
 }
 
-void initSettingsWindow(bool* show)
+void initSettingsMenuBar()
 {
-    global.window.settings_window_width = global.window.graph_window_width;
-    global.window.settings_window_height = global.Windowsize_y - 3 * global.window.margin - global.window.graph_window_height;
-    SetNextWindowPos(ImVec2(global.window.margin + global.window.video_window_width + global.window.margin, 2 * global.window.margin + global.window.graph_window_height));
-    SetNextWindowSize(ImVec2(global.window.settings_window_width, global.window.settings_window_height));
-    Begin("Settings", show,  
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_MenuBar);
-
-    static bool load_movie = false;
-    static bool load_stat = false;
-    static bool save_movie = false;
-    static bool save_graph = false;
     if (BeginMenuBar())
     {
         if (BeginMenu("File"))
         {
-            if (BeginMenu("Load"))
+            if (BeginMenu("Open"))
             {
-                if (MenuItem("Movie file", "CTRL+M"))
-                {
-                    OpenPopup("Picker");
-                    SetNextWindowPos(ImVec2(500,20));
-                }
-                MenuItem("Statistics file", "CTRL+T");
+                if (MenuItem("Movie file", "CTRL+M")) global.settings.open_movie = true;
+                
+                if (MenuItem("Statistics file", "CTRL+T")) global.settings.open_stats = true;
                 EndMenu();
             }
             if (BeginMenu("Save"))
@@ -404,6 +399,28 @@ void initSettingsWindow(bool* show)
         }
         EndMenuBar();
     }
+
+    global.settings.dlg.chooseFileDialog(global.settings.open_movie);              // see other dialog types and the full list of arguments for advanced usage
+    if (strlen(global.settings.dlg.getChosenPath())>0) {
+        ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
+        global.settings.open_movie = false;
+    }
+    global.settings.dlg.chooseFileDialog(global.settings.open_stats);              // see other dialog types and the full list of arguments for advanced usage
+    if (strlen(global.settings.dlg.getChosenPath())>0) {
+        ImGui::Text("Chosen file: \"%s\"",global.settings.dlg.getChosenPath());
+        global.settings.open_stats = false;
+    }
+}
+
+void initSettingsWindow(bool *show)
+{
+    SetNextWindowPos(ImVec2(global.settings.poz_x, global.settings.poz_y));
+    SetNextWindowSize(ImVec2(global.settings.width, global.settings.height));
+    Begin("Settings", show,  
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_MenuBar);
+
+    initSettingsMenuBar();
 
     if (CollapsingHeader("Help"))
     {
@@ -551,7 +568,7 @@ void transformDistance(float *r)
     *r = *r * global.movie_proportion_x;
 }
 
-void readImage(const char* imagePath, GLuint* renderedTexture)
+void readImage(const char *imagePath, GLuint *renderedTexture)
 {  
     glGenTextures(1, renderedTexture);
     glBindTexture(GL_TEXTURE_2D, *renderedTexture);
@@ -565,7 +582,7 @@ void readImage(const char* imagePath, GLuint* renderedTexture)
     int width = image.width();
     int height = image.height();
 
-    unsigned char* img = new unsigned char[width * height * 3];
+    unsigned char *img = new unsigned char[width * height * 3];
     for (int i = 0; i < height; i++)
     {  
         for (int j = 0; j < width; j++)
@@ -583,15 +600,15 @@ void readImage(const char* imagePath, GLuint* renderedTexture)
 void readImages()
 {
     // https://www.flaticon.com/packs/music
-    readImage("../img/play.svg", &global.window.play_image);
-    readImage("../img/pause.svg", &global.window.pause_image);
-    readImage("../img/rewind.svg", &global.window.rewind_image);
-    readImage("../img/fast-forward.svg", &global.window.fastforward_image);
-    readImage("../img/next.svg", &global.window.next_image);
-    readImage("../img/back.svg", &global.window.back_image);
+    readImage("../img/play.svg", &global.video.play_image);
+    readImage("../img/pause.svg", &global.video.pause_image);
+    readImage("../img/rewind.svg", &global.video.rewind_image);
+    readImage("../img/fast-forward.svg", &global.video.fastforward_image);
+    readImage("../img/next.svg", &global.video.next_image);
+    readImage("../img/back.svg", &global.video.back_image);
 }
 
-void ShowHelpMarker(const char* desc)
+void ShowHelpMarker(const char *desc)
 {
     TextDisabled("(?)");
     if (IsItemHovered())
@@ -604,7 +621,7 @@ void ShowHelpMarker(const char* desc)
     }
 }
 
-void AddFileLocation(const char* filename)
+void AddFileLocation(const char *filename)
 {
     char *ptr;
     ptr = realpath(global.statfilename, NULL);

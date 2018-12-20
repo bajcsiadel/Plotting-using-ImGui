@@ -34,10 +34,10 @@ void initialize_global_data()
     global.radius_vertex = 0.01;
     global.radius_particle = 0.01;
     
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany25ero.mvi", 50);
+    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany00ero.mvi", 50);
     global.moviefilename[50] = '\0';
 
-    strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany25ero.txt", 49);
+    strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany00ero.txt", 49);
     global.statfilename[49] = '\0';
     
     global.N_frames = 0;

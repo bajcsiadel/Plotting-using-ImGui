@@ -13,6 +13,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 #include "imgui.h"
+#include "imguifilesystem.h"
 
 struct object_struct
 {
@@ -34,21 +35,14 @@ struct window_struct
     SDL_GLContext gl_context;
     ImGuiIO io;
     ImVec4 clear_color;
-    
-    int video_window_width;
-    int video_window_height;
-
-    int movie_window_width;
-    int movie_window_height;
-
-    int graph_window_width;
-    int graph_window_height;
-
-    int settings_window_width;
-    int settings_window_height;
 
     int margin;
-    int button_size;
+};
+
+struct video_window
+{
+    int width;
+    int height;
 
     GLuint play_image;
     GLuint pause_image;
@@ -56,6 +50,38 @@ struct window_struct
     GLuint back_image;
     GLuint fastforward_image;
     GLuint rewind_image;
+
+    int button_size;
+    bool play;
+};
+
+struct movie_window
+{
+    int width;
+    int height;
+};
+
+struct graph_window
+{
+    int width;
+    int height;
+};
+
+struct settings_window
+{
+    int width;
+    int height;
+
+    int poz_x;
+    int poz_y;
+
+    bool open_movie;
+    bool open_stats;
+    
+    bool save_movie;
+    bool save_stats;
+
+    ImGuiFs::Dialog dlg;
 };
 
 struct global_struct
@@ -100,6 +126,10 @@ struct global_struct
     //all objects in the movie file
     struct object_struct **objects;
     struct window_struct window;
+    struct video_window video;
+    struct movie_window movie;
+    struct graph_window graph;
+    struct settings_window settings;
     struct stat_struct *stats;
     bool show_x, show_y, show_z;
 };
