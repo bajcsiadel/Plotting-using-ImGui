@@ -2,6 +2,7 @@ EXE = plot
 SOURCES = main.cpp globaldata.cpp drawing.cpp
 SOURCES += ../imgui/examples/imgui_impl_glfw.cpp ../imgui/examples/imgui_impl_opengl2.cpp
 SOURCES += ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_widgets.cpp ../imgui/imguifilesystem/imguifilesystem.cpp
+DST_SRC = $(addprefix $(OUT_DIR), $(notdir $(SOURCES)))
 HEADERS = globaldata.h drawing.h  CImg.h
 MKDIR_P = mkdir -p
 OUT_DIR = ../build/
@@ -41,19 +42,10 @@ endif
 CXXFLAGS += -Wall -Wformat -Wunused-variable
 CFLAGS = $(CXXFLAGS)
 
-$(OUT_DIR)%.o: %.cpp
+$(OUT_DIR)%.o: $(OUT_DIR)%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-$(OUT_DIR)%.o: ../imgui/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-$(OUT_DIR)%.o: ../imgui/examples/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-$(OUT_DIR)%.o: ../imgui/imguifilesystem/%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
-
-all: clean directories plot
+all: clean directories copy_all $(EXE) delete_copies
 	@echo $(GREEN)"Build complete for $(ECHO_MESSAGE)\n"$(DEFAULT)
 
 $(EXE): $(HEADERS) $(OBJS)
@@ -65,6 +57,15 @@ clean:
 	@echo $(GREEN)"Remove binary files"$(DEFAULT)
 	rm -f $(OUT_DIR)$(EXE) $(OUT_DIR)$(EXE).exe $(OBJS)
 	@echo ""
+
+copy_all:
+	@for src in $(SOURCES) $(HEADERS); \
+	do \
+		cp $$src $(OUT_DIR)$$(basename $$src); \
+	done
+
+delete_copies:
+	@rm -f $(OUT_DIR)*.cpp $(OUT_DIR)*.h
 
 .PHONY: directories
 
