@@ -10,8 +10,7 @@
 #define globaldata_h
 
 #include <stdio.h>
-#include <SDL.h>
-#include <SDL_opengl.h>
+#include <GLFW/glfw3.h>
 #include "imgui.h"
 #include "imguifilesystem.h"
 
@@ -30,9 +29,7 @@ struct stat_struct {
 
 struct window_struct
 {
-    SDL_DisplayMode current;
-    SDL_Window* window;
-    SDL_GLContext gl_context;
+    GLFWwindow* window;
     ImGuiIO io;
     ImVec4 clear_color;
 

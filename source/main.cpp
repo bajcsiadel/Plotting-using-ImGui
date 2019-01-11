@@ -19,8 +19,15 @@ int main(int, char**)
     
     // write_frame_data_to_file();
     
-    setupSDL();
-    initWindow();
+    if (setupGLFW() == 0) {
+        fprintf(stderr, "Glfw Error: could not initalize!\n");
+        return 1;
+    }
+
+    if (initWindow() == 0) {
+        fprintf(stderr, "Glfw Error: could not create window!\n");
+        return 1;
+    }
 
     startMainLoop();
 

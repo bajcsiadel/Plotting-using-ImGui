@@ -2,19 +2,27 @@
 #include "globaldata.h"
 
 #include "imgui.h"
-#include "imgui_impl_sdl.h"
+#include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
 #include "imguifilesystem.h"
 
 #include <stdio.h>
 #include <string.h>
-#include <SDL.h>
-#include <SDL_opengl.h>
+#include <GLFW/glfw3.h>
 #include "CImg.h"
 
 using namespace cimg_library;
 using namespace ImGui;
 using namespace ImGuiFs;
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
+#pragma comment(lib, "legacy_stdio_definitions")
+#endif
+
+static void glfw_error_callback(int error, const char* description)
+{
+    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+}
 
 const ImVec4 colors[] = {
     ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0
@@ -28,58 +36,36 @@ const ImVec4 colors[] = {
     ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8
 };
 
-void setupSDL()
+int setupGLFW()
 {
-    // Setup SDL
-    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0)
-    {
-        printf("Error: %s\n", SDL_GetError());
-        exit(1);
-    }
+    // Setup GLFW
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit())
+        return 0;
+    return 1;
 }
 
-void initWindow()
+int initWindow()
 {
     // Setup window
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-    SDL_GetCurrentDisplayMode(0, &global.window.current);
+    global.window.window = glfwCreateWindow(global.Windowsize_x, global.Windowsize_y, "Plot", NULL, NULL);
+    if (global.window.window == NULL)
+        return 0;
 
-    global.window.window = SDL_CreateWindow("Plot", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, global.Windowsize_x, global.Windowsize_y, SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
-    global.window.gl_context = SDL_GL_CreateContext(global.window.window);
-    SDL_GL_SetSwapInterval(1); // Enable vsync
+    glfwMakeContextCurrent(global.window.window);
+    glfwSwapInterval(1); // Enable vsync
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     CreateContext();
     global.window.io = GetIO(); (void)global.window.io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-
+    
     // Setup Platform/Renderer bindings
-    ImGui_ImplSDL2_InitForOpenGL(global.window.window, global.window.gl_context);
+    ImGui_ImplGlfw_InitForOpenGL(global.window.window, true);
     ImGui_ImplOpenGL2_Init();
 
     // Setup Style
-    // StyleColorsDark();
     StyleColorsLight();
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use PushFont()/PopFont() to select them. 
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple. 
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'misc/fonts/README.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
 
     global.window.clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     global.window.margin = 10;
@@ -103,6 +89,8 @@ void initWindow()
 
     global.settings.poz_x = global.window.margin + global.video.width + global.window.margin;
     global.settings.poz_y = 2 * global.window.margin + global.graph.height;
+
+    return 1;
 }
 
 void initMovie(bool show_video_window)
@@ -159,7 +147,7 @@ void initVideoWindow(bool *show_video_window)
     SetNextWindowPos(ImVec2(global.window.margin, global.window.margin));
     SetNextWindowSize(ImVec2(global.video.width, global.video.height));
     Begin("Video", show_video_window,  
-        ImGuiWindowFlags_NoResize/* | ImGuiWindowFlags_NoCollapse */| 
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
     AddFileLocation(global.moviefilename);
     initMovie(true);
@@ -419,7 +407,7 @@ void initSettingsMenuBar()
         EndMenuBar();
     }
     if (open_movie || open_stats) global.video.play = false;
-    dlg.chooseFileDialog(open_movie || open_stats);
+    dlg.chooseFileDialog(open_movie || open_stats, "..", ".mvi;.txt");
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
         if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
@@ -509,25 +497,13 @@ void startMainLoop()
 {
     // Main loop
     readImages();
-    bool done = false;
-    while (!done)
+    while (!glfwWindowShouldClose(global.window.window))
     {
-        // Poll and handle events (inputs, window resize, etc.)
-        // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-        // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            ImGui_ImplSDL2_ProcessEvent(&event);
-            if (event.type == SDL_QUIT)
-                done = true;
-        }
+        glfwPollEvents();
 
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL2_NewFrame();
-        ImGui_ImplSDL2_NewFrame(global.window.window);
+        ImGui_ImplGlfw_NewFrame();
         NewFrame();
 
         initVideoWindow(NULL);
@@ -536,12 +512,15 @@ void startMainLoop()
 
         // Rendering
         Render();
-        glViewport(0, 0, (int)global.window.io.DisplaySize.x, (int)global.window.io.DisplaySize.y);
+        int display_w, display_h;
+        glfwGetFramebufferSize(global.window.window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
         glClearColor(global.window.clear_color.x, global.window.clear_color.y, global.window.clear_color.z, global.window.clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         
         ImGui_ImplOpenGL2_RenderDrawData(GetDrawData());
-        SDL_GL_SwapWindow(global.window.window);
+        glfwMakeContextCurrent(global.window.window);
+        glfwSwapBuffers(global.window.window);
 
     }
     cleanup();
@@ -551,12 +530,11 @@ void cleanup()
 {
     // Cleanup
     ImGui_ImplOpenGL2_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
     DestroyContext();
 
-    SDL_GL_DeleteContext(global.window.gl_context);
-    SDL_DestroyWindow(global.window.window);
-    SDL_Quit();
+    glfwDestroyWindow(global.window.window);
+    glfwTerminate();
 }
 
 void maxStats(int *t_max, float *x_max, float *y_max, float *z_max)
