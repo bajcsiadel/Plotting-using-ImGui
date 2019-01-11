@@ -496,7 +496,7 @@ void initSettingsWindow(bool *show)
 void startMainLoop()
 {
     // Main loop
-    readImages();
+    // readImages();
     while (!glfwWindowShouldClose(global.window.window))
     {
         glfwPollEvents();
