@@ -4,4 +4,4 @@
 build
 *.ini
 *.svg
-^.
+*.yml
