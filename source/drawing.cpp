@@ -27,15 +27,15 @@ static void glfw_error_callback(int error, const char* description)
 }
 
 const ImVec4 colors[] = {
-    ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0
-    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 1
-    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 2
-    ImVec4(0.0000, 0.0000, 0.0000, 1.0000), // 3
-    ImVec4(0.8941, 0.1019, 0.1098, 1.0000), // 4
-    ImVec4(0.4941, 0.6117, 0.9215, 1.0000), // 5
-    ImVec4(0.3019, 0.6862, 0.2901, 1.0000), // 6
-    ImVec4(0.8900, 0.6120 ,0.2160, 1.0000), // 7
-    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8
+    ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0 - red
+    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 1 - gray
+    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 2 - gray
+    ImVec4(0.0000, 0.0000, 0.0000, 1.0000), // 3 - black
+    ImVec4(0.8941, 0.1019, 0.1098, 1.0000), // 4 - red shade
+    ImVec4(0.4941, 0.6117, 0.9215, 1.0000), // 5 - blue
+    ImVec4(0.3019, 0.6862, 0.2901, 1.0000), // 6 - green
+    ImVec4(0.8900, 0.6120 ,0.2160, 1.0000), // 7 - orange
+    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8 - almost red
 };
 
 int setupGLFW()
@@ -205,18 +205,23 @@ void initVideoWindow(bool *show_video_window)
         global.current_frame = (global.current_frame < global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
-void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size, float min, float max)
+void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size, int x_max, ImVec2 y_lims)
 {
-    ImU32 black;
+    // x_lims = ImVec2(t_min, t_max)
+    // y_lims = ImVec2(min, max)
+    // y_lims.x = -1.5f;
+    int i, j, t_value, step, axis, tick_poz;
+    ImU32 black, gray;
     const unsigned int a = 7;
     const unsigned int x = poz.x,
         y = poz.y,
         y2 = poz.y + size.y;
-    const unsigned int x0 = poz.x - 10,
+    const unsigned int x0 = poz.x - 30,
         x01 = poz.x + size.x,
-        y0 = (min < 0 ? (poz.y + size.y) * max / (max - min) : poz.y + size.y - 7);
+        y0 = (y_lims.x < 0 ? poz.y + size.y * y_lims.y / (y_lims.y - y_lims.x) : poz.y + size.y - 7);
 
-    black = ImColor(colors[3]);
+    gray    = ImColor(colors[2]);
+    black   = ImColor(colors[3]);
 
     // vertical axis
     draw_list->AddLine(ImVec2(x, y), ImVec2(x, y2), black);
@@ -225,7 +230,21 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
     draw_list->AddLine(ImVec2(x, y), ImVec2(x + a / 2, y + sqrt(3) * a / 2), black);
     draw_list->AddText(ImVec2(x - 9, y + 5), black, "N");
 
-    //horizontal axis
+    // vertical tick lines
+    step = x_max / 5 / 4;
+    axis = (x01 - sqrt(3) * a / 2 - x0 - 30) / 20;
+    // printf("%d\n", x_max);
+    for (i = 0, tick_poz = poz.x + axis, j = 1; i < x_max; i += step, tick_poz += axis, j++) {
+        draw_list->AddLine(ImVec2(tick_poz, y), ImVec2(tick_poz, y2), gray);
+        if (j % 5 == 0) {
+            draw_list->AddLine(ImVec2(tick_poz, y0 - 7), ImVec2(tick_poz, y0 + 7), black);
+            draw_list->AddText(ImVec2(tick_poz - 15, y0 + 7), black, "1000");
+        } else {
+            draw_list->AddLine(ImVec2(tick_poz, y0 - 4), ImVec2(tick_poz, y0 + 4), black);
+        }
+    }
+
+    // horizontal axis
     draw_list->AddLine(ImVec2(x0, y0), ImVec2(x01, y0), black);
     // arrow at it's end
     draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 - a / 2), black);
@@ -265,10 +284,10 @@ void initGraphWindow(bool *show)
     BeginChild("", ImVec2(x_size, y_size), true);
         draw_list = GetWindowDrawList();
 
-        poz_x += 20;
+        poz_x += 40;
         poz_y += 67;
         y_size -= 20;
-        x_size -= 20;
+        x_size -= 40;
 
         maxStats(&t_max, &x_max, &y_max, &z_max);
         minStats(&t_min, &x_min, &y_min, &z_min);
@@ -280,8 +299,8 @@ void initGraphWindow(bool *show)
         max = x_max;
         if (max > y_max) max = y_max;
         if (max > z_max) max = z_max;
-
-        drawDecartesCoordinateSystem(draw_list, ImVec2(poz_x, poz_y), ImVec2(x_size, y_size), min, max);
+        
+        drawDecartesCoordinateSystem(draw_list, ImVec2(poz_x, poz_y), ImVec2(x_size, y_size), t_max, ImVec2(min, max));
 
         y_size -= 7;
 
