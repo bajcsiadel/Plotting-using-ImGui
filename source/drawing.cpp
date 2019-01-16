@@ -2,16 +2,17 @@
 #include "globaldata.h"
 
 #include "imgui.h"
+#include "imgui-SFML.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
 #include "imguifilesystem.h"
 
+#include <SFML/Graphics/Image.hpp>
+
 #include <stdio.h>
 #include <string.h>
 #include <GLFW/glfw3.h>
-#include "CImg.h"
 
-using namespace cimg_library;
 using namespace ImGui;
 using namespace ImGuiFs;
 
@@ -74,6 +75,7 @@ int initWindow()
     global.video.height = global.video.width 
         = global.Windowsize_y - 2 * global.window.margin;
     global.video.play = true;
+    global.video.step = 1;
 
     global.movie.width = global.video.width - 2 * global.window.margin;
     global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - 20; // filenamr height
@@ -152,36 +154,54 @@ void initVideoWindow(bool *show_video_window)
     AddFileLocation(global.moviefilename);
     initMovie(true);
     
+    GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
+    // https://www.flaticon.com/packs/music
+    readImage(&play_image, "../img/play.png");
+    readImage(&pause_image, "../img/pause.png");
+    readImage(&back_image, "../img/back.png");
+    readImage(&next_image, "../img/next.png");
+    readImage(&rewind_image, "../img/rewind.png");
+    readImage(&fastforward_image, "../img/fast-forward.png");
+    
+    PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
+    PushStyleColor(ImGuiCol_ButtonActive, global.window.clear_color);
+
     Separator();
-    if (ImageButton((void*) (intptr_t)global.video.back_image, ImVec2(global.video.button_size, global.video.button_size)))
+    ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
+    if (IsItemClicked())
         global.current_frame = 0;
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.video.rewind_image, ImVec2(global.video.button_size, global.video.button_size)))
-        {}
+    ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
+    if (IsItemClicked())
+        global.video.step = (global.video.step != 1 ? global.video.step / 2 : global.video.step);
     SameLine();
 
-    if (global.video.play)
-        ImageButton((void*) (intptr_t)global.video.pause_image, ImVec2(global.video.button_size, global.video.button_size));
+    if (global.video.play) 
+        ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
     else
-        ImageButton((void*) (intptr_t)global.video.play_image, ImVec2(global.video.button_size, global.video.button_size));
+        ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
     if (IsItemClicked())
         global.video.play = !global.video.play;
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.video.fastforward_image, ImVec2(global.video.button_size, global.video.button_size)))
-        {}
+    ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
+    if (IsItemClicked())
+        global.video.step = (global.video.step < 128 ? global.video.step * 2 : global.video.step);
     SameLine();
 
-    if (ImageButton((void*) (intptr_t)global.video.next_image, ImVec2(global.video.button_size, global.video.button_size)))
+    ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
+    if (IsItemClicked())
         global.current_frame = global.N_frames - 1;
     SameLine();
+
+    PopStyleColor(2);
 
     PushItemWidth(-50);
     SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
     End();
     if (global.video.play)
-        global.current_frame = (global.current_frame < global.N_frames - 1 ? global.current_frame + 1 : 0);
+        global.current_frame = (global.current_frame < global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
 void initGraphWindow(bool *show)
@@ -496,7 +516,6 @@ void initSettingsWindow(bool *show)
 void startMainLoop()
 {
     // Main loop
-    // readImages();
     while (!glfwWindowShouldClose(global.window.window))
     {
         glfwPollEvents();
@@ -582,44 +601,25 @@ void transformDistance(float *r)
     *r = *r * global.movie_proportion_x;
 }
 
-void readImage(const char *imagePath, GLuint *renderedTexture)
-{  
-    glGenTextures(1, renderedTexture);
-    glBindTexture(GL_TEXTURE_2D, *renderedTexture);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    CImg<unsigned char> image(imagePath);
-    int width = image.width();
-    int height = image.height();
-
-    unsigned char *img = new unsigned char[width * height * 3];
-    for (int i = 0; i < height; i++)
-    {  
-        for (int j = 0; j < width; j++)
-        {  
-            img[ 3 * (i * width + j) + 0 ] = (unsigned char)*(image.data(j, i, 0, 0));
-            img[ 3 * (i * width + j) + 1 ] = (unsigned char)*(image.data(j, i, 0, 1));
-            img[ 3 * (i * width + j) + 2 ] = (unsigned char)*(image.data(j, i, 0, 2));
-        }
-    }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-              GL_UNSIGNED_BYTE, img);
-    delete[] img;
-}
-
-void readImages()
+void readImage(GLuint *texture, const char *filename)
 {
-    // https://www.flaticon.com/packs/music
-    readImage("../img/play.svg", &global.video.play_image);
-    readImage("../img/pause.svg", &global.video.pause_image);
-    readImage("../img/rewind.svg", &global.video.rewind_image);
-    readImage("../img/fast-forward.svg", &global.video.fastforward_image);
-    readImage("../img/next.svg", &global.video.next_image);
-    readImage("../img/back.svg", &global.video.back_image);
+    sf::Image img_data;
+    if (!img_data.loadFromFile(filename))
+    {
+        printf("Could not load '%s'.", filename);
+    }
+    glGenTextures(1, texture);
+    glBindTexture(GL_TEXTURE_2D, *texture);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA,
+        img_data.getSize().x, img_data.getSize().y,
+        0,
+        GL_RGBA, GL_UNSIGNED_BYTE, img_data.getPixelsPtr()
+    );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
 void ShowHelpMarker(const char *desc)

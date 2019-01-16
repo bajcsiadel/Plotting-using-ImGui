@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <GLFW/glfw3.h>
+
 #include "imgui.h"
 #include "imguifilesystem.h"
 
@@ -41,12 +42,7 @@ struct video_window
     int width;
     int height;
 
-    GLuint play_image;
-    GLuint pause_image;
-    GLuint next_image;
-    GLuint back_image;
-    GLuint fastforward_image;
-    GLuint rewind_image;
+    unsigned int step;
 
     int button_size;
     bool play;

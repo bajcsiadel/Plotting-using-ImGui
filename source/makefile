@@ -1,15 +1,16 @@
 EXE = plot
 SOURCES = main.cpp globaldata.cpp drawing.cpp
 SOURCES += ../imgui/examples/imgui_impl_glfw.cpp ../imgui/examples/imgui_impl_opengl2.cpp
+SOURCES += ../imgui/sfml/imgui-SFML.cpp
 SOURCES += ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_widgets.cpp ../imgui/imguifilesystem/imguifilesystem.cpp
 DST_SRC = $(addprefix $(OUT_DIR), $(notdir $(SOURCES)))
-HEADERS = globaldata.h drawing.h  CImg.h
+HEADERS = globaldata.h drawing.h
 MKDIR_P = mkdir -p
 OUT_DIR = ../build/
 DIRECTORIES = $(OUT_DIR)
 OBJS = $(addprefix $(OUT_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 DIRECTORIES = $(OUT_DIR)
-INCLUDES = ../imgui ../imgui/examples ../imgui/imguifilesystem
+INCLUDES = ../imgui ../imgui/examples ../imgui/imguifilesystem ../imgui/sfml /usr/SFML
 CXXFLAGS = $(addprefix -I, $(INCLUDES)) 
 
 ifeq ($(OS),Windows_NT) #WINDOWS
@@ -25,7 +26,7 @@ else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S), Linux) #LINUX
 		ECHO_MESSAGE = "Linux"
-		LIBS = -lGL `pkg-config --static --libs glfw3` -lpthread -L/usr/X11R6/lib -lm -lX11
+		LIBS = -lGL `pkg-config --static --libs glfw3` -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
 
 		CXXFLAGS += `pkg-config --cflags glfw3`
 	endif
