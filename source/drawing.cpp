@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 using namespace ImGui;
 using namespace ImGuiFs;
@@ -204,15 +205,46 @@ void initVideoWindow(bool *show_video_window)
         global.current_frame = (global.current_frame < global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
+void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size, float min, float max)
+{
+    ImU32 black;
+    const unsigned int a = 7;
+    const unsigned int x = poz.x,
+        y = poz.y,
+        y2 = poz.y + size.y;
+    const unsigned int x0 = poz.x - 10,
+        x01 = poz.x + size.x,
+        y0 = (min < 0 ? (poz.y + size.y) * max / (max - min) : poz.y + size.y - 7);
+
+    black = ImColor(colors[3]);
+
+    // vertical axis
+    draw_list->AddLine(ImVec2(x, y), ImVec2(x, y2), black);
+    // arrow at it's end
+    draw_list->AddLine(ImVec2(x, y), ImVec2(x - a / 2, y + sqrt(3) * a / 2), black);
+    draw_list->AddLine(ImVec2(x, y), ImVec2(x + a / 2, y + sqrt(3) * a / 2), black);
+    draw_list->AddText(ImVec2(x - 9, y + 5), black, "N");
+
+    //horizontal axis
+    draw_list->AddLine(ImVec2(x0, y0), ImVec2(x01, y0), black);
+    // arrow at it's end
+    draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 - a / 2), black);
+    draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 + a / 2), black);
+    draw_list->AddText(ImVec2(x01 - 20, y0 + a / 2), black, "t");
+
+    draw_list->AddText(ImVec2(x0 + 2, y0), black, "0");
+}
+
 void initGraphWindow(bool *show)
 {
     int x_size, y_size;
     int poz_x, poz_y;
     int i, j;
-    int t1, t2, t_max, t_frame, t0, tn;
+    int t1, t2, t_max, t_min, t_frame, t0, tn;
     float x1, y1, z1;
     float x2, y2, z2;
-    float x_max, y_max, z_max;
+    float x_max, y_max, z_max, max;
+    float x_min, y_min, z_min, min;
     ImU32 xc, yc, zc;
     ImDrawList *draw_list;
 
@@ -225,86 +257,101 @@ void initGraphWindow(bool *show)
     Begin("Graph", show,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
-    // SetNextWindowPos(ImVec2(2 * global.window.margin, global.window.margin));
 
     AddFileLocation(global.statfilename);
 
     x_size = global.graph.width - 2.5 * global.window.margin;
-    y_size = global.graph.height - 12 * global.window.margin;
+    y_size = global.graph.height - 8.2 * global.window.margin;
     BeginChild("", ImVec2(x_size, y_size), true);
-    draw_list = GetWindowDrawList();
+        draw_list = GetWindowDrawList();
 
-    poz_x += 10;
-    x_size -= 7;
-    poz_y += 45;
+        poz_x += 20;
+        poz_y += 67;
+        y_size -= 20;
+        x_size -= 20;
 
-    xc = ImColor(colors[6]);
-    yc = ImColor(colors[7]);
-    zc = ImColor(colors[8]);
+        maxStats(&t_max, &x_max, &y_max, &z_max);
+        minStats(&t_min, &x_min, &y_min, &z_min);
 
-    maxStats(&t_max, &x_max, &y_max, &z_max);
+        min = x_min;
+        if (min > y_min) min = y_min;
+        if (min > z_min) min = z_min;
 
-    x2 = global.stats[0].x;
-    y2 = global.stats[0].y;
-    z2 = global.stats[0].z;
-    t2 = global.stats[0].time;
+        max = x_max;
+        if (max > y_max) max = y_max;
+        if (max > z_max) max = z_max;
 
-    generalTransformCoordinates(&t2, t_max, x_size, poz_x);
-    generalTransformCoordinates(&x2, x_max, y_size, poz_y, true);
-    generalTransformCoordinates(&y2, y_max, y_size, poz_y, true);
-    generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
+        drawDecartesCoordinateSystem(draw_list, ImVec2(poz_x, poz_y), ImVec2(x_size, y_size), min, max);
 
-    t0 = t2;
-    t_frame = global.current_frame * 100;
-    generalTransformCoordinates(&t_frame, t_max, x_size, poz_x);
-    j = -1;
-    for (i = 1; i < global.N_stats; i++)
-    {
-        x1 = x2;
-        y1 = y2;
-        z1 = z2;
-        tn = t1 = t2;
+        y_size -= 7;
 
-        x2 = global.stats[i].x;
-        y2 = global.stats[i].y;
-        z2 = global.stats[i].z;
-        t2 = global.stats[i].time;
+        xc = ImColor(colors[6]);
+        yc = ImColor(colors[7]);
+        zc = ImColor(colors[8]);
 
+
+        x2 = global.stats[0].x;
+        y2 = global.stats[0].y;
+        z2 = global.stats[0].z;
+        t2 = global.stats[0].time;
 
         generalTransformCoordinates(&t2, t_max, x_size, poz_x);
         generalTransformCoordinates(&x2, x_max, y_size, poz_y, true);
         generalTransformCoordinates(&y2, y_max, y_size, poz_y, true);
         generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
 
-        if (global.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
-        if (global.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
-        if (global.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
-
-        if (t_frame >= t1 && t_frame <= t2)
+        t0 = t2;
+        t_frame = global.current_frame * 100;
+        generalTransformCoordinates(&t_frame, t_max, x_size, poz_x);
+        j = -1;
+        for (i = 1; i < global.N_stats; i++)
         {
-            j = i;  // t_frame value is between (i - 1) and i
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
-        }
-    }
+            x1 = x2;
+            y1 = y2;
+            z1 = z2;
+            tn = t1 = t2;
 
-    if (j == -1)
-    {
-        if (t_frame < t0)
-        {
-            j = 0;
-            t_frame += 2;
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            x2 = global.stats[i].x;
+            y2 = global.stats[i].y;
+            z2 = global.stats[i].z;
+            t2 = global.stats[i].time;
+
+
+            generalTransformCoordinates(&t2, t_max, x_size, poz_x);
+            generalTransformCoordinates(&x2, x_max, y_size, poz_y, true);
+            generalTransformCoordinates(&y2, y_max, y_size, poz_y, true);
+            generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
+
+            if (global.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
+            if (global.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
+            if (global.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
+
+            if (t_frame >= t1 && t_frame <= t2)
+            {
+                j = i;  // t_frame value is between (i - 1) and i
+                draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            }
         }
 
-        if (t_frame > tn)
+        if (j == -1)
         {
-            j = global.N_stats - 1;
-            t_frame -= 2;
-            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            if (t_frame < t0)
+            {
+                j = 0;
+                t_frame += 2;
+                draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            }
+
+            if (t_frame > tn)
+            {
+                j = global.N_stats - 1;
+                t_frame -= 2;
+                draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+            }
         }
-    }
 
     EndChild();
+    j = 1;
     calculateCoordinatesOnGraph(j);
     End();
 }
@@ -570,6 +617,23 @@ void maxStats(int *t_max, float *x_max, float *y_max, float *z_max)
         if (global.stats[i].x > *x_max) *x_max = global.stats[i].x;
         if (global.stats[i].y > *y_max) *y_max = global.stats[i].y;
         if (global.stats[i].z > *z_max) *z_max = global.stats[i].z;
+    }
+}
+
+void minStats(int *t_min, float *x_min, float *y_min, float *z_min)
+{
+    int i;
+
+    *t_min = global.stats[0].time;
+    *x_min = global.stats[0].x;
+    *y_min = global.stats[0].y;
+    *z_min = global.stats[0].z;
+    for (i = 1; i < global.N_stats; i++)
+    {
+        if (global.stats[i].time < *t_min) *t_min = global.stats[i].time;
+        if (global.stats[i].x < *x_min) *x_min = global.stats[i].x;
+        if (global.stats[i].y < *y_min) *y_min = global.stats[i].y;
+        if (global.stats[i].z < *z_min) *z_min = global.stats[i].z;
     }
 }
 
