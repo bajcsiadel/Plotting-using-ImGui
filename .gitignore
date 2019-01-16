@@ -2,7 +2,8 @@
 *test*
 *.o
 build
-*.ini
-*.svg
-*.yml
-*.vscode
+**/*.ini
+img/*.svg
+imgui/*.yml
+source/*.vscode
+img/*.png
