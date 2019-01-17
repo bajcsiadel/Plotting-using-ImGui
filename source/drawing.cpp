@@ -210,35 +210,74 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
     // x_lims = ImVec2(t_min, t_max)
     // y_lims = ImVec2(min, max)
     // y_lims.x = -1.5f;
-    int i, j, t_value, step, axis, tick_poz;
+    int j, t_value, t_step, axis, tick_poz;
+    float range, y_value, y_step;
     ImU32 black, gray;
     const unsigned int a = 7;
     const unsigned int x = poz.x,
         y = poz.y,
         y2 = poz.y + size.y;
-    const unsigned int x0 = poz.x - 30,
+    const unsigned int x0 = poz.x - 50,
         x01 = poz.x + size.x,
         y0 = (y_lims.x < 0 ? poz.y + size.y * y_lims.y / (y_lims.y - y_lims.x) : poz.y + size.y - 7);
 
     gray    = ImColor(colors[2]);
     black   = ImColor(colors[3]);
 
+    // place thicks on vertical axis
+    range = y_lims.y - (y_lims.x  < 0 ? y_lims.x : 0.0f);
+    y_step = range / 4 / 4;
+    axis = size.y / 4 / 4;
+    for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < y_lims.y; y_value += y_step, tick_poz -= axis, j++) {
+        printf("%2.2f\n", y_value);
+        draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
+        if (j % 4 == 0 || y_value + y_step >= y_lims.y) {
+            char *number = new char[10];
+            size_t len = snprintf(number, 9, "%.3f", y_value);
+
+            draw_list->AddLine(ImVec2(x - 7, tick_poz), ImVec2(x + 7, tick_poz), black);
+            draw_list->AddText(ImVec2(x - len * 8, tick_poz - 7), black, number);
+
+            delete[] number;
+        } else {
+            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
+        }
+    }
+    for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++) {
+        printf("%2.2f\n", y_value);
+        draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
+        if (j % 4 == 0 || y_value - y_step >= y_lims.y) {
+            char *number = new char[10];
+            size_t len = snprintf(number, 9, "%.3f", y_value);
+
+            draw_list->AddLine(ImVec2(x - 7, tick_poz), ImVec2(x + 7, tick_poz), black);
+            draw_list->AddText(ImVec2(x - len * 8, tick_poz - 7), black, number);
+
+            delete[] number;
+        } else {
+            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
+        }
+    }
+
     // vertical axis
     draw_list->AddLine(ImVec2(x, y), ImVec2(x, y2), black);
     // arrow at it's end
     draw_list->AddLine(ImVec2(x, y), ImVec2(x - a / 2, y + sqrt(3) * a / 2), black);
     draw_list->AddLine(ImVec2(x, y), ImVec2(x + a / 2, y + sqrt(3) * a / 2), black);
-    draw_list->AddText(ImVec2(x - 9, y + 5), black, "N");
 
-    // vertical tick lines
-    step = x_max / 5 / 4;
-    axis = (x01 - sqrt(3) * a / 2 - x0 - 30) / 20;
-    // printf("%d\n", x_max);
-    for (i = 0, tick_poz = poz.x + axis, j = 1; i < x_max; i += step, tick_poz += axis, j++) {
-        draw_list->AddLine(ImVec2(tick_poz, y), ImVec2(tick_poz, y2), gray);
+    // ticks on horisontal axis
+    t_step = x_max / 5 / 4;
+    axis = (x01 - sqrt(3) * a / 2 - x0 - 50) / 20;
+    for (t_value = t_step, tick_poz = poz.x + axis, j = 1; t_value <= x_max; t_value += t_step, tick_poz += axis, j++) {
+        draw_list->AddLine(ImVec2(tick_poz, 0), ImVec2(tick_poz, 2 * y2), gray);
         if (j % 5 == 0) {
+            char *number = new char[10];
+            size_t len = snprintf(number, 9, "%d", t_value);
+
             draw_list->AddLine(ImVec2(tick_poz, y0 - 7), ImVec2(tick_poz, y0 + 7), black);
-            draw_list->AddText(ImVec2(tick_poz - 15, y0 + 7), black, "1000");
+            draw_list->AddText(ImVec2(tick_poz - len * 4, y0 + 7), black, number);
+
+            delete[] number;
         } else {
             draw_list->AddLine(ImVec2(tick_poz, y0 - 4), ImVec2(tick_poz, y0 + 4), black);
         }
@@ -249,9 +288,8 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
     // arrow at it's end
     draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 - a / 2), black);
     draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 + a / 2), black);
-    draw_list->AddText(ImVec2(x01 - 20, y0 + a / 2), black, "t");
 
-    draw_list->AddText(ImVec2(x0 + 2, y0), black, "0");
+    draw_list->AddText(ImVec2(x - 8, y0), black, "0");
 }
 
 void initGraphWindow(bool *show)
@@ -284,10 +322,10 @@ void initGraphWindow(bool *show)
     BeginChild("", ImVec2(x_size, y_size), true);
         draw_list = GetWindowDrawList();
 
-        poz_x += 40;
+        poz_x += 60;
         poz_y += 67;
-        y_size -= 20;
-        x_size -= 40;
+        y_size -= 25;
+        x_size -= 60;
 
         maxStats(&t_max, &x_max, &y_max, &z_max);
         minStats(&t_min, &x_min, &y_min, &z_min);
