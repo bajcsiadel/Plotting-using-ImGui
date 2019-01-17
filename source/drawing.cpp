@@ -209,7 +209,6 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
 {
     // x_lims = ImVec2(t_min, t_max)
     // y_lims = ImVec2(min, max)
-    // y_lims.x = -1.5f;
     int j, t_value, t_step, axis, tick_poz;
     float range, y_value, y_step;
     ImU32 black, gray;
@@ -229,7 +228,6 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
     y_step = range / 4 / 4;
     axis = size.y / 4 / 4;
     for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < y_lims.y; y_value += y_step, tick_poz -= axis, j++) {
-        printf("%2.2f\n", y_value);
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
         if (j % 4 == 0 || y_value + y_step >= y_lims.y) {
             char *number = new char[10];
@@ -244,7 +242,6 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, ImVec2 size
         }
     }
     for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++) {
-        printf("%2.2f\n", y_value);
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
         if (j % 4 == 0 || y_value - y_step >= y_lims.y) {
             char *number = new char[10];
@@ -408,7 +405,6 @@ void initGraphWindow(bool *show)
         }
 
     EndChild();
-    j = 1;
     calculateCoordinatesOnGraph(j);
     End();
 }
