@@ -36,11 +36,11 @@ void initialize_global_data()
     
     global.length = 100;
     global.moviefilename = (char *) malloc(global.length);
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/3irany00ero.mvi", 50);
+    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/10ero_4417.mvi", 50);
     global.moviefilename[50] = '\0';
 
     global.statfilename = (char *) malloc(global.length);
-    strncpy(global.statfilename, "../../Time-Crystals/results/stats/3irany00ero.txt", 49);
+    strncpy(global.statfilename, "../../Time-Crystals/results/stats/10ero_4417.txt", 49);
     global.statfilename[49] = '\0';
     
     global.N_frames = 0;

@@ -355,7 +355,7 @@ void initGraphWindow(bool *show)
         generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
 
         t0 = t2;
-        t_frame = global.current_frame * 100;
+        t_frame = global.current_frame * 10;
         generalTransformCoordinates(&t_frame, t_max, x_size, poz_x);
         j = -1;
         for (i = 1; i < global.N_stats; i++)
@@ -551,8 +551,8 @@ void initSettingsMenuBar()
                 open_movie = false;
             }
             global.current_frame = 0;
+            global.video.play = true;
         }
-        global.video.play = true;
     }
 }
 
