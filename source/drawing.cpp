@@ -338,6 +338,7 @@ void initGraphWindow(bool *show)
         drawDecartesCoordinateSystem(draw_list, ImVec2(poz_x, poz_y), ImVec2(x_size, y_size), t_max, ImVec2(min, max));
 
         y_size -= 7;
+        x_size -= 23;
 
         xc = ImColor(colors[6]);
         yc = ImColor(colors[7]);
@@ -527,7 +528,7 @@ void initSettingsMenuBar()
         EndMenuBar();
     }
     if (open_movie || open_stats) global.video.play = false;
-    dlg.chooseFileDialog(open_movie || open_stats, "..", ".mvi;.txt");
+    dlg.chooseFileDialog(open_movie || open_stats, "../../Time-Crystals/results", ".mvi;.txt");
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
         if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
