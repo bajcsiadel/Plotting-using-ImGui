@@ -20,7 +20,7 @@ void initialize_global_data()
 {
 
     global.Windowsize_x = 1280;
-    global.Windowsize_y = 800;
+    global.Windowsize_y = 1200;
 
     global.SX = 72.0;
     global.SY = 72.0;

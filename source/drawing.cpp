@@ -73,8 +73,8 @@ int initWindow()
     global.window.margin = 10;
     global.video.button_size = 28;
 
-    global.video.height = global.video.width 
-        = global.Windowsize_y - 2 * global.window.margin;
+    global.video.height = global.video.width
+        = global.Windowsize_y * 2 / 3 - 2 * global.window.margin;
     global.video.play = true;
     global.video.step = 1;
 
@@ -84,14 +84,14 @@ int initWindow()
     global.movie_proportion_x = ((double) global.movie.width - 20) / global.SX;
     global.movie_proportion_y = ((double) global.movie.height - 20) / global.SY;
 
-    global.graph.width = global.Windowsize_x - 3 * global.window.margin - global.video.width;
+    global.graph.width = global.video.width;
     global.graph.height = global.video.height / 2;
 
-    global.settings.width = global.graph.width;
-    global.settings.height = global.Windowsize_y - 3 * global.window.margin - global.graph.height;
+    global.settings.width = global.Windowsize_x - global.video.width - 3 * global.window.margin;
+    global.settings.height = global.Windowsize_y - 2 * global.window.margin;
 
     global.settings.poz_x = global.window.margin + global.video.width + global.window.margin;
-    global.settings.poz_y = 2 * global.window.margin + global.graph.height;
+    global.settings.poz_y = global.window.margin;
 
     return 1;
 }
@@ -244,7 +244,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 *poz, ImVec2 *si
     }
     for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++) {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
-        if (j % 4 == 0 || y_value - y_step <= y_lims.y) {
+        if (j % 4 == 0 || y_value - y_step < y_lims.x) {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%.3f", y_value);
 
@@ -274,7 +274,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 *poz, ImVec2 *si
 
             draw_list->AddLine(ImVec2(tick_poz, y0 - 7), ImVec2(tick_poz, y0 + 7), black);
             draw_list->AddText(ImVec2(tick_poz - len * 4, y0 + 7), black, number);
-
+            size->x = tick_poz;
             delete[] number;
         } else {
             draw_list->AddLine(ImVec2(tick_poz, y0 - 4), ImVec2(tick_poz, y0 + 4), black);
@@ -288,14 +288,12 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 *poz, ImVec2 *si
     draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 + a / 2), black);
 
     draw_list->AddText(ImVec2(x - 8, y0), black, "0");
-
-    size->x = x01 - sqrt(3) * a / 2 - x0 - 50;
 }
 
 void initGraphWindow(bool *show)
 {
-    int x_size, y_size;
-    int poz_x, poz_y;
+    unsigned int size_x, size_y;
+    unsigned int poz_x, poz_y;
     unsigned int i;
     int j;
     unsigned int t1, t2, t_max, t_min, t_frame, t0, tn;
@@ -306,9 +304,8 @@ void initGraphWindow(bool *show)
     ImU32 xc, yc, zc;
     ImDrawList *draw_list;
 
-    ShowDemoWindow();
-    poz_x = global.window.margin + global.video.width + global.window.margin;
-    poz_y = global.window.margin;
+    poz_x = global.window.margin;
+    poz_y = global.window.margin + global.video.height + global.window.margin;
 
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
@@ -318,15 +315,15 @@ void initGraphWindow(bool *show)
 
     AddFileLocation(global.statfilename);
 
-    x_size = global.graph.width - 2.5 * global.window.margin;
-    y_size = global.graph.height - 8.2 * global.window.margin;
-    BeginChild("", ImVec2(x_size, y_size), true);
+    size_x = global.graph.width - 2.5 * global.window.margin;
+    size_y = global.graph.height - 8.2 * global.window.margin;
+    BeginChild("", ImVec2(size_x, size_y), true);
         draw_list = GetWindowDrawList();
 
         poz_x += 60;
         poz_y += 67;
-        y_size -= 25;
-        x_size -= 60;
+        size_y -= 25;
+        size_x -= 60;
 
         maxStats(&t_max, &x_max, &y_max, &z_max);
         minStats(&t_min, &x_min, &y_min, &z_min);
@@ -340,12 +337,12 @@ void initGraphWindow(bool *show)
         if (max > z_max) max = z_max;
         
         ImVec2 poz = ImVec2(poz_x, poz_y);
-        ImVec2 size = ImVec2(x_size, y_size);
+        ImVec2 size = ImVec2(size_x, size_y);
         drawDecartesCoordinateSystem(draw_list, &poz, &size, t_max, ImVec2(min, max));
         poz_x = poz.x;
         poz_y = poz.y;
-        x_size = size.x;
-        y_size = size.y;
+        size_x = size.x;
+        size_y = size.y;
 
         x_max = (x_min < 0 ? x_max - x_min : x_max);
         y_max = (y_min < 0 ? y_max - y_min : y_max);
@@ -361,14 +358,14 @@ void initGraphWindow(bool *show)
         z2 = global.stats[0].z;
         t2 = global.stats[0].time;
 
-        generalTransformCoordinates(&t2, t_max, x_size, poz_x);
-        generalTransformCoordinates(&x2, x_max, y_size, poz_y, true);
-        generalTransformCoordinates(&y2, y_max, y_size, poz_y, true);
-        generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
+        generalTransformCoordinates(&t2, t_max, size_x, poz_x);
+        generalTransformCoordinates(&x2, x_max, size_y, poz_y, true);
+        generalTransformCoordinates(&y2, y_max, size_y, poz_y, true);
+        generalTransformCoordinates(&z2, z_max, size_y, poz_y, true);
 
         t0 = t2;
-        t_frame = global.current_frame / 10;
-        generalTransformCoordinates(&t_frame, t_max, x_size, poz_x);
+        t_frame = global.current_frame * 100;
+        generalTransformCoordinates(&t_frame, t_max, size_x, poz_x);
         j = -1;
         for (i = 1; i < global.N_stats; i++)
         {
@@ -382,12 +379,10 @@ void initGraphWindow(bool *show)
             z2 = global.stats[i].z;
             t2 = global.stats[i].time;
 
-            printf("%f\n", x2);
-
-            generalTransformCoordinates(&t2, t_max, x_size, poz_x);
-            generalTransformCoordinates(&x2, x_max, y_size, poz_y, true);
-            generalTransformCoordinates(&y2, y_max, y_size, poz_y, true);
-            generalTransformCoordinates(&z2, z_max, y_size, poz_y, true);
+            generalTransformCoordinates(&t2, t_max, size_x, poz_x);
+            generalTransformCoordinates(&x2, x_max, size_y, poz_y, true);
+            generalTransformCoordinates(&y2, y_max, size_y, poz_y, true);
+            generalTransformCoordinates(&z2, z_max, size_y, poz_y, true);
 
             if (global.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
             if (global.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
@@ -399,7 +394,6 @@ void initGraphWindow(bool *show)
                 draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
             }
         }
-        exit(1);
 
         if (j == -1)
         {
