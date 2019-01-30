@@ -399,7 +399,7 @@ void initGraphWindow(bool *show)
                 if (global.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
 
                 if (global.show_x || global.show_y || global.show_z)
-                    if (t_frame >= t1 && t_frame <= t2)
+                    if (t_frame > t1 && t_frame <= t2)
                     {
                         j = i;  // t_frame value is between (i - 1) and i
                         draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
@@ -408,7 +408,7 @@ void initGraphWindow(bool *show)
             if (global.show_x || global.show_y || global.show_z)
                 if (j == -1)
                 {
-                    if (t_frame < t0)
+                    if (t_frame <= t0)
                     {
                         j = 0;
                         t_frame += 2;
@@ -441,7 +441,8 @@ void calculateCoordinatesOnGraph(int i)
     z2 = global.stats[i].z;
     t2 = global.stats[i].time;
 
-    if (i != 0) {
+    if (i != 0)
+    {
         x1 = global.stats[i - 1].x;
         y1 = global.stats[i - 1].y;
         z1 = global.stats[i - 1].z;
@@ -452,16 +453,16 @@ void calculateCoordinatesOnGraph(int i)
         z1 = z2;
         t1 = t2;
     }
-
-    if (t1 == t2) 
+    
+    if (t1 == t2 || t1 == t_frame) 
     {
         x_value = x1;
         y_value = y1;
         z_value = z1;
     } else {
-        x_value = (1 - t1 * x2 + t2 * x1 - t_frame * (x1 - x2)) / (t2 - t1);
-        y_value = (1 - t1 * y2 + t2 * y1 - t_frame * (y1 - y2)) / (t2 - t1);
-        z_value = (1 - t1 * z2 + t2 * z1 - t_frame * (z1 - z2)) / (t2 - t1);
+        x_value = ((t_frame - t1) * (x2 - x1)) / (t2 - t1) + x1;
+        y_value = ((t_frame - t1) * (y2 - y1)) / (t2 - t1) + y1;
+        z_value = ((t_frame - t1) * (z2 - z1)) / (t2 - t1) + z1;
     }
 
     if (global.show_x)
