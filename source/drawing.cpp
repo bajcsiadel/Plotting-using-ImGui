@@ -206,7 +206,7 @@ void initVideoWindow(bool *show_video_window)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
-void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned int *size_x, unsigned int size_y, unsigned int x_max, ImVec2 y_lims)
+void drawDecartesCoordinateSystem(ImDrawList *draw_list, unsigned int *poz_x, unsigned int *poz_y, unsigned int *size_x, unsigned int *size_y, unsigned int x_max, ImVec2 y_lims)
 {
     // x_lims = ImVec2(t_min, t_max)
     // y_lims = ImVec2(min, max)
@@ -214,12 +214,12 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
     float range, y_value, y_step;
     ImU32 black, gray;
     const unsigned int a = 7;
-    const unsigned int x = poz.x,
-        y = poz.y,
-        y2 = poz.y + size_y;
-    const unsigned int x0 = poz.x - 50,
-        x01 = poz.x + *size_x,
-        y0 = (y_lims.x < 0 ? poz.y + size_y * y_lims.y / (y_lims.y - y_lims.x) : poz.y + size_y - a);
+    const unsigned int x = *poz_x,
+        y = *poz_y,
+        y2 = *poz_y + *size_y;
+    const unsigned int x0 = *poz_x - 50,
+        x01 = *poz_x + *size_x,
+        y0 = (y_lims.x < 0 ? *poz_y + *size_y * y_lims.y / (y_lims.y - y_lims.x) : *poz_y + *size_y - a);
 
     gray    = ImColor(colors[2]);
     black   = ImColor(colors[3]);
@@ -227,7 +227,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
     // place thicks on vertical axis
     range = y_lims.y - (y_lims.x  < 0 ? y_lims.x : 0.0f);
     y_step = range / 4 / 4;
-    axis = size_y / 4 / 4;
+    axis = *size_y / 4 / 4;
     for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < y_lims.y; y_value += y_step, tick_poz -= axis, j++) {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
         if (j % 4 == 0 || y_value + y_step >= y_lims.y) {
@@ -236,6 +236,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
 
             draw_list->AddLine(ImVec2(x - 7, tick_poz), ImVec2(x + 7, tick_poz), black);
             draw_list->AddText(ImVec2(x - len * 8, tick_poz - 7), black, number);
+            *poz_y = tick_poz;
 
             delete[] number;
         } else {
@@ -250,6 +251,8 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
 
             draw_list->AddLine(ImVec2(x - 7, tick_poz), ImVec2(x + 7, tick_poz), black);
             draw_list->AddText(ImVec2(x - len * 8, tick_poz - 7), black, number);
+            *size_y = tick_poz - *poz_y;
+
             delete[] number;
         } else {
             draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
@@ -265,7 +268,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
     // ticks on horisontal axis
     t_step = x_max / 5 / 4;
     axis = (x01 - sqrt(3) * a / 2 - x0 - 50) / 20;
-    for (t_value = t_step, tick_poz = poz.x + axis, j = 1; t_value <= x_max; t_value += t_step, tick_poz += axis, j++) {
+    for (t_value = t_step, tick_poz = *poz_x + axis, j = 1; t_value <= x_max; t_value += t_step, tick_poz += axis, j++) {
         draw_list->AddLine(ImVec2(tick_poz, 0), ImVec2(tick_poz, 2 * y2), gray);
         if (j % 5 == 0) {
             char *number = new char[10];
@@ -273,7 +276,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
 
             draw_list->AddLine(ImVec2(tick_poz, y0 - 7), ImVec2(tick_poz, y0 + 7), black);
             draw_list->AddText(ImVec2(tick_poz - len * 4, y0 + 7), black, number);
-            *size_x = tick_poz - poz.x;
+            *size_x = tick_poz - *poz_x;
 
             delete[] number;
         } else {
@@ -288,6 +291,8 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list, ImVec2 poz, unsigned in
     draw_list->AddLine(ImVec2(x01, y0), ImVec2(x01 - sqrt(3) * a / 2, y0 + a / 2), black);
 
     draw_list->AddText(ImVec2(x - 8, y0), black, "0");
+
+    *poz_x = x;
 }
 
 void initGraphWindow(bool *show)
@@ -310,7 +315,7 @@ void initGraphWindow(bool *show)
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
     Begin("Graph", show,  
-        /*ImGuiWindowFlags_NoResize | */ImGuiWindowFlags_NoCollapse | 
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
 
         AddFileLocation(global.statfilename);
@@ -336,7 +341,9 @@ void initGraphWindow(bool *show)
             if (max > y_max) max = y_max;
             if (max > z_max) max = z_max;
             
-            drawDecartesCoordinateSystem(draw_list, ImVec2(poz_x, poz_y), &size_x, size_y, t_max, ImVec2(min, max));
+            drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max));
+
+            max = (min < 0 ? max - min : max);
 
             xc = ImColor(colors[6]);
             yc = ImColor(colors[7]);
