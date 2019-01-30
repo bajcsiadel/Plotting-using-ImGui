@@ -8,6 +8,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "globaldata.h"
+#include "color.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -60,7 +62,9 @@ void open_movie_file()
     global.moviefile = ImFileOpen(global.moviefilename, "rb");
     if (global.moviefile == NULL)
     {
-        printf("\033[1;31mCannot find/open movie file: %s\033[0m\n", global.moviefilename);
+        COLOR_ERROR;
+        printf("Cannot find/open movie file: %s\n", global.moviefilename);
+        COLOR_DEFAULT;
         exit(1);
     }
 }
@@ -69,7 +73,7 @@ void dummy_read_cmovie_frame()
 {
     int intholder;
     float floatholder;
-    int i;
+    unsigned int i;
 
     //read one frame but don't store the values (dummy read)
     fread(&intholder, sizeof(int), 1, global.moviefile);
@@ -100,7 +104,7 @@ void read_cmovie_frame(int j)
 {
     int intholder;
     float floatholder;
-    int i;
+    unsigned int i;
 
     fread(&intholder, sizeof(int), 1, global.moviefile);
     if (!feof(global.moviefile))
@@ -132,7 +136,7 @@ void read_cmovie_frame(int j)
 
 void read_moviefile_data()
 {
-    int i;
+    unsigned int i;
 
     //open the file, if it cannot be found, exit with error
     open_movie_file();
@@ -174,17 +178,20 @@ void read_moviefile_data()
 
 void read_statisticsfile_data()
 {
-    int reserved;
+    unsigned int reserved;
+    float dummy;
 
     global.statfile = ImFileOpen(global.statfilename, "r");
     if (global.statfile == NULL)
     {
-        printf("\033[1;31mCannot find/open statistics file: %s\033[0m\n", global.statfilename);
+        COLOR_ERROR;
+        printf("Cannot find/open statistics file: %s\n", global.statfilename);
+        COLOR_DEFAULT;
         exit(1);
     }
 
     global.N_stats = 0;
-    reserved = 1;
+    reserved = 100;
     global.stats = (struct stat_struct*) malloc(reserved * sizeof(struct stat_struct));
     while(!feof(global.statfile))
     {
@@ -198,6 +205,8 @@ void read_statisticsfile_data()
         fscanf(global.statfile, "%f", &global.stats[global.N_stats].x);
         fscanf(global.statfile, "%f", &global.stats[global.N_stats].y);
         fscanf(global.statfile, "%f", &global.stats[global.N_stats].z);
+        fscanf(global.statfile, "%f", &dummy);
+        fscanf(global.statfile, "%f", &dummy);
 
         global.N_stats ++;
     }
@@ -213,7 +222,7 @@ void read_statisticsfile_data()
 void write_frame_data_to_file()
 {
     FILE *outfile[6];
-    int i;
+    unsigned int i;
     int file_i;
     int color;
     int frame;

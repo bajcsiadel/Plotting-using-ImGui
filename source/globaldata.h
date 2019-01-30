@@ -17,14 +17,14 @@
 
 struct object_struct
 {
-    int color;
+    unsigned int color;
     float x;
     float y;
     float R;
 };
 
 struct stat_struct {
-    int time;
+    unsigned int time;
     float x, y, z;
 };
 
@@ -39,34 +39,34 @@ struct window_struct
 
 struct video_window
 {
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
 
     unsigned int step;
 
-    int button_size;
+    unsigned int button_size;
     bool play;
 };
 
 struct movie_window
 {
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
 };
 
 struct graph_window
 {
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
 };
 
 struct settings_window
 {
-    int width;
-    int height;
+    unsigned int width;
+    unsigned int height;
 
-    int poz_x;
-    int poz_y;
+    unsigned int poz_x;
+    unsigned int poz_y;
 
     int open; // 0 - movie
               // 1 - stats
@@ -76,8 +76,8 @@ struct global_struct
 {
     
     //OpenGl window size
-    int Windowsize_x;           //window size in pixels x direction
-    int Windowsize_y;           //window size in pixels y direction
+    unsigned int Windowsize_x;           //window size in pixels x direction
+    unsigned int Windowsize_y;           //window size in pixels y direction
     
     //System Size
     double SX;
@@ -96,22 +96,22 @@ struct global_struct
     char *moviefilename;
     FILE *moviefile;
     
-    int N_frames;
+    unsigned int N_frames;
     int current_frame;
     
     char *statfilename;
     FILE *statfile;
 
-    int length;
+    unsigned int length;
 
-    int N_stats;
+    unsigned int N_stats;
     
     bool trajectories_on;
-    int particles_tracked;
+    unsigned int particles_tracked;
     ImVec4 traj_color;
     float traj_width;
 
-    int N_objects;
+    unsigned int N_objects;
     
     //all objects in the movie file
     struct object_struct **objects;
