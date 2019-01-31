@@ -92,13 +92,7 @@ void read_moviefile_data()
         }
 
         fread(&intholder, sizeof(int), 1, global.moviefile);
-        if (global.N_frames != 0) {
-            if (global.N_objects != (unsigned int) intholder) {
-                COLOR_WARNING;
-                printf("WARNING: Different number of elements between frames (%d)!\n%d != %d\n",global.N_frames, global.N_objects, intholder);
-                COLOR_DEFAULT;
-            }
-        } else
+        if (global.N_frames == 0)
             global.N_objects = (unsigned int) intholder;
         
         // reading frame number
