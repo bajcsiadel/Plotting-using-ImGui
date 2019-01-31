@@ -252,3 +252,13 @@ void write_frame_data_to_file()
     for(i = 0; i <= 5; i++)
         fclose(outfile[i]);
 }
+
+void freeArrays()
+{
+    free(global.moviefilename);
+    free(global.statfilename);
+    for (unsigned int i = 0; i < global.N_frames; i++)
+        free(global.objects[i]);
+    free(global.objects);
+    free(global.stats);
+}

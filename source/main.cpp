@@ -30,6 +30,6 @@ int main(int, char**)
     }
 
     startMainLoop();
-
+    freeArrays();
     return 0;
 }

@@ -128,6 +128,8 @@ extern struct global_struct global;
 
 void initialize_global_data(void);
 
+void freeArrays();
+
 void open_movie_file(void);
 void dummy_read_cmovie_frame(void);
 void read_moviefile_data();
