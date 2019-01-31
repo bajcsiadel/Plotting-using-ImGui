@@ -119,9 +119,9 @@ void initMovie(bool show_video_window)
         if (c == 2 || c == 3) 
         {
             draw_list->AddCircleFilled(ImVec2((int)x, (int)y), r, col32, 36);
-            if (global.trajectories_on)
+            if (global.movie.trajectories_on)
             {
-                if (n < global.particles_tracked)
+                if (n < global.movie.particles_tracked)
                 {
                     n ++;
                     for (j = 0; j < global.current_frame - 1; j++)
@@ -135,7 +135,7 @@ void initMovie(bool show_video_window)
                         {
                             transformMovieCoordinates(&x1, &y1);
                             transformMovieCoordinates(&x2, &y2);
-                            draw_list->AddLine(ImVec2((int)x1, (int)y1), ImVec2((int)x2, (int)y2), ImColor(global.traj_color), global.traj_width);
+                            draw_list->AddLine(ImVec2((int)x1, (int)y1), ImVec2((int)x2, (int)y2), ImColor(global.movie.traj_color), global.movie.traj_width);
                         }
                     }
                 }
@@ -338,14 +338,14 @@ void initGraphWindow(bool *show)
             minStats(&t_min, &x_min, &y_min, &z_min);
 
             min = HUGE_VAL_F32;
-            if (global.show_x && min > x_min) min = x_min;
-            if (global.show_y && min > y_min) min = y_min;
-            if ((global.show_z && min > z_min) || min == HUGE_VAL_F32) min = z_min;
+            if (global.graph.show_x && min > x_min) min = x_min;
+            if (global.graph.show_y && min > y_min) min = y_min;
+            if ((global.graph.show_z && min > z_min) || min == HUGE_VAL_F32) min = z_min;
 
             max = (-1) * HUGE_VAL_F32;
-            if (global.show_x && max < x_max) max = x_max;
-            if (global.show_y && max < y_max) max = y_max;
-            if ((global.show_z && max < z_max) || max == (-1) * HUGE_VAL_F32) max = z_max;
+            if (global.graph.show_x && max < x_max) max = x_max;
+            if (global.graph.show_y && max < y_max) max = y_max;
+            if ((global.graph.show_z && max < z_max) || max == (-1) * HUGE_VAL_F32) max = z_max;
             
             drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
 
@@ -394,18 +394,18 @@ void initGraphWindow(bool *show)
                 y2 -= size_y - y0;
                 z2 -= size_y - y0;
 
-                if (global.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
-                if (global.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
-                if (global.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
+                if (global.graph.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
+                if (global.graph.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
+                if (global.graph.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
 
-                if (global.show_x || global.show_y || global.show_z)
+                if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
                     if (t_frame > t1 && t_frame <= t2)
                     {
                         j = i;  // t_frame value is between (i - 1) and i
                         draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                     }
             }
-            if (global.show_x || global.show_y || global.show_z)
+            if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
                 if (j == -1)
                 {
                     if (t_frame <= t0)
@@ -465,7 +465,7 @@ void calculateCoordinatesOnGraph(int i)
         z_value = ((t_frame - t1) * (z2 - z1)) / (t2 - t1) + z1;
     }
 
-    if (global.show_x)
+    if (global.graph.show_x)
     {
         x_text = (char*) malloc(100);
         snprintf(x_text, 100, "x = %2.8f\t", x_value);
@@ -474,7 +474,7 @@ void calculateCoordinatesOnGraph(int i)
         free(x_text);
     }
 
-    if (global.show_y)
+    if (global.graph.show_y)
     {
         y_text = (char*) malloc(100);
         snprintf(y_text, 100, "y = %2.8f\t", y_value);
@@ -483,7 +483,7 @@ void calculateCoordinatesOnGraph(int i)
         free(y_text);
     }
 
-    if (global.show_z)
+    if (global.graph.show_z)
     {
         z_text = (char*) malloc(100);
         snprintf(z_text, 100, "z = %f2.8\t", z_value);
@@ -594,22 +594,22 @@ void initSettingsWindow(bool *show)
     
     if (CollapsingHeader("Movie"))
     {
-        Checkbox("Toggle trajectory", &global.trajectories_on);
-        if (global.trajectories_on)
+        Checkbox("Toggle trajectory", &global.movie.trajectories_on);
+        if (global.movie.trajectories_on)
         {
             float spacing = GetStyle().ItemInnerSpacing.x;
             PushButtonRepeat(true);
-            if (ArrowButton("##left", ImGuiDir_Left)) { if (global.particles_tracked > 1) global.particles_tracked--; }
+            if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
             SameLine(0.0f, spacing);
-            if (ArrowButton("##right", ImGuiDir_Right)) { if (global.particles_tracked < global.N_objects/4) global.particles_tracked++; }
+            if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
             PopButtonRepeat();
             SameLine();
-            Text("%d", global.particles_tracked);
+            Text("%d", global.movie.particles_tracked);
 
-            ColorEdit3("Trajectory color", (float*)&global.traj_color);
+            ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
             SameLine(); 
             ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
-            DragFloat("Trajectory width", &global.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
+            DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
             ShowHelpMarker("Click and drag to change the value");
         }
         // if (TreeNode("Zoom"))
@@ -617,14 +617,21 @@ void initSettingsWindow(bool *show)
         //     TreePop();
         //     Separator();
         // }
+        Checkbox("Show grid lines", &global.movie.show_grid_lines);
+        if (global.movie.show_grid_lines)
+        {
+            unsigned int N_rows, N_columns;
+            // N_rows = (int)sqrt((double) global.N_);
+            // N_columns = N_rows;
+        }
     }
     if (CollapsingHeader("Graph"))
     {
         if (TreeNode("Data shown"))
         {
-            Checkbox("X", &global.show_x);
-            Checkbox("Y", &global.show_y);
-            Checkbox("Z", &global.show_z);
+            Checkbox("X", &global.graph.show_x);
+            Checkbox("Y", &global.graph.show_y);
+            Checkbox("Z", &global.graph.show_z);
             TreePop();
             Separator();
         }

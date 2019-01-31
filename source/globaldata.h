@@ -52,12 +52,21 @@ struct movie_window
 {
     unsigned int width;
     unsigned int height;
+    
+    bool trajectories_on;
+    unsigned int particles_tracked;
+    ImVec4 traj_color;
+    float traj_width;
+
+    bool show_grid_lines;
 };
 
 struct graph_window
 {
     unsigned int width;
     unsigned int height;
+
+    bool show_x, show_y, show_z;
 };
 
 struct settings_window
@@ -105,13 +114,10 @@ struct global_struct
     unsigned int length;
 
     unsigned int N_stats;
-    
-    bool trajectories_on;
-    unsigned int particles_tracked;
-    ImVec4 traj_color;
-    float traj_width;
 
     unsigned int N_objects;
+    unsigned int N_particles;
+    unsigned int N_pinningsites;
     
     //all objects in the movie file
     struct object_struct **objects;
@@ -121,7 +127,6 @@ struct global_struct
     struct graph_window graph;
     struct settings_window settings;
     struct stat_struct *stats;
-    bool show_x, show_y, show_z;
 };
 
 extern struct global_struct global;
@@ -130,8 +135,6 @@ void initialize_global_data(void);
 
 void freeArrays();
 
-void open_movie_file(void);
-void dummy_read_cmovie_frame(void);
 void read_moviefile_data();
 void read_statisticsfile_data();
 

@@ -48,132 +48,93 @@ void initialize_global_data()
     global.N_frames = 0;
     global.current_frame = 0;
     
-    global.trajectories_on = false;
-    global.particles_tracked = 5;
-    global.traj_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
-    global.traj_width = 0.5;
-}
-
-//try to open the movie file, exit if not found with an error message
-
-void open_movie_file()
-{
-
-    global.moviefile = ImFileOpen(global.moviefilename, "rb");
-    if (global.moviefile == NULL)
-    {
-        COLOR_ERROR;
-        printf("Cannot find/open movie file: %s\n", global.moviefilename);
-        COLOR_DEFAULT;
-        exit(1);
-    }
-}
-
-void dummy_read_cmovie_frame()
-{
-    int intholder;
-    float floatholder;
-    unsigned int i;
-
-    //read one frame but don't store the values (dummy read)
-    fread(&intholder, sizeof(int), 1, global.moviefile);
-    if (!feof(global.moviefile))
-    {
-        global.N_objects = intholder;
-        //printf("N_particles = %d\n", N_particles);
-        fread(&intholder, sizeof(int), 1, global.moviefile);
-        //printf("Frame = %d\n", intholder);
-
-        for(i = 0;i < global.N_objects; i++)
-        {
-            //intholder = global_variables.particles[i].color;
-            fread(&intholder, sizeof(int), 1, global.moviefile);
-            //intholder = i;//ID
-            fread(&intholder, sizeof(int), 1, global.moviefile);
-            //floatholder = (float)global_variables.particles[i].x;
-            fread(&floatholder, sizeof(float), 1, global.moviefile);
-            //floatholder = (float)global_variables.particles[i].y;
-            fread(&floatholder, sizeof(float), 1, global.moviefile);
-            //floatholder = 1.0;//cum_disp, cmovie format
-            fread(&floatholder, sizeof(float), 1, global.moviefile);
-        }
-    }
-}
-
-void read_cmovie_frame(int j)
-{
-    int intholder;
-    float floatholder;
-    unsigned int i;
-
-    fread(&intholder, sizeof(int), 1, global.moviefile);
-    if (!feof(global.moviefile))
-    {
-        global.N_objects = intholder;
-        //printf("N_objects = %d\n", N_objects);
-        fread(&intholder, sizeof(int), 1, global.moviefile);
-        //printf("Frame = %d\n", intholder);
-
-        for (i = 0; i < global.N_objects; i++)
-        {
-            //read in the color
-            fread(&intholder, sizeof(int), 1, global.moviefile);
-            global.objects[j][i].color = intholder;
-            //read in the ID
-            fread(&intholder, sizeof(int), 1, global.moviefile);
-            //read in the x coordinate
-            fread(&floatholder, sizeof(float), 1,  global.moviefile);
-            global.objects[j][i].x = floatholder;
-            //read in the y coordinate
-            fread(&floatholder, sizeof(float), 1,  global.moviefile);
-            global.objects[j][i].y = floatholder;
-            //read in extra data that is unused (legacy)
-            fread(&floatholder, sizeof(float), 1, global.moviefile);
-            global.objects[j][i].R = floatholder;
-        }
-    }
+    global.movie.trajectories_on = false;
+    global.movie.particles_tracked = 5;
+    global.movie.traj_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
+    global.movie.traj_width = 0.5;
 }
 
 void read_moviefile_data()
 {
-    unsigned int i;
+    unsigned int reserved, i;
+    int intholder;
+    float floatholder;
 
     //open the file, if it cannot be found, exit with error
-    open_movie_file();
+    global.moviefile = ImFileOpen(global.moviefilename, "rb");
+    if (global.moviefile == NULL)
+    {
+        COLOR_ERROR;
+        printf("Cannot find/open movie file: %s\n", global.statfilename);
+        COLOR_DEFAULT;
+        exit(1);
+    }
 
     //pre-scan the file to find out how many frames/partciles we have
     //this could be modified to be capable of finding the frames that are complete
-    printf("Pre-scanning movie file %s\n", global.moviefilename);
+    printf("Read movie file %s\n", global.moviefilename);
     global.N_frames = 0;
-    while (!feof(global.moviefile))
-    {
-        dummy_read_cmovie_frame();
-        if (!feof(global.moviefile)) global.N_frames++;
+    global.N_objects = 0;
+    global.N_pinningsites = 0;
+    reserved = 100;
+    if (global.objects != NULL) {
+        for (i = 0; i < global.N_frames; i++) free(global.objects[i]);
+        free(global.objects);
     }
+    global.objects = (struct object_struct **) malloc(reserved * sizeof(struct object_struct *));
+
+    while(!feof(global.moviefile))
+    {
+        if (reserved <= global.N_frames)
+        {
+            reserved += 50;
+            global.objects = (struct object_struct **) realloc(global.objects, reserved * sizeof(struct object_struct *));
+        }
+
+        fread(&intholder, sizeof(int), 1, global.moviefile);
+        if (global.N_frames != 0) {
+            if (global.N_objects != (unsigned int) intholder) {
+                COLOR_WARNING;
+                printf("WARNING: Different number of elements between frames (%d)!\n%d != %d\n",global.N_frames, global.N_objects, intholder);
+                COLOR_DEFAULT;
+            }
+        } else
+            global.N_objects = (unsigned int) intholder;
+        
+        // reading frame number
+        fread(&intholder, sizeof(int), 1, global.moviefile);
+        
+        global.objects[global.N_frames] = (struct object_struct *) malloc(global.N_objects * sizeof(struct object_struct));
+        for (i = 0; i < global.N_objects; i++) {
+            //read in the color
+            fread(&intholder, sizeof(int), 1, global.moviefile);
+            global.objects[global.N_frames][i].color = intholder;
+            //read in the ID
+            fread(&intholder, sizeof(int), 1, global.moviefile);
+            //read in the x coordinate
+            fread(&floatholder, sizeof(float), 1,  global.moviefile);
+            global.objects[global.N_frames][i].x = floatholder;
+            //read in the y coordinate
+            fread(&floatholder, sizeof(float), 1,  global.moviefile);
+            global.objects[global.N_frames][i].y = floatholder;
+            //read in extra data that is unused (legacy)
+            fread(&floatholder, sizeof(float), 1, global.moviefile);
+            global.objects[global.N_frames][i].R = floatholder;
+        }
+        global.N_frames ++;
+    }
+    global.N_frames --;
+    for (i = 0; i < global.N_objects; i++) 
+        if (global.objects[0][i].color != 2 && global.objects[0][i].color != 3)
+            global.N_pinningsites ++;
+    global.N_particles = global.N_objects - global.N_pinningsites; 
 
     printf("Movie has %d frames\n", global.N_frames);
-    printf("Movie has %d partciles in a frame\n", global.N_objects);
+    printf("Movie has %d objects in a frame from which %d particles and %d pinningsites\n", global.N_objects, global.N_particles, global.N_pinningsites);
 
-    //allocate space for the data
-
-    global.objects = (struct object_struct **) malloc(global.N_frames * sizeof(struct object_struct *));
-    for(i = 0; i < global.N_frames; i++)
-        global.objects[i] = (struct object_struct *) malloc(global.N_objects * sizeof(struct object_struct));
- 
-    //re-open the movie file
     fclose(global.moviefile);
-    global.moviefile = ImFileOpen(global.moviefilename, "rb");
-
-    //read the actual data
-    //reads in all the data from the movie file
-    //this usually fits in the memory - if not this needs a rewrite
-    i = 0;
-    while (!feof(global.moviefile) && (i < global.N_frames))
-    {
-        read_cmovie_frame(i);
-        i ++;
-    }
-    fclose(global.moviefile);
+    
+    global.movie.show_grid_lines = false;
 }
 
 void read_statisticsfile_data()
@@ -190,9 +151,12 @@ void read_statisticsfile_data()
         exit(1);
     }
 
+    printf("Read stat file %s\n", global.statfilename);
     global.N_stats = 0;
     reserved = 100;
-    global.stats = (struct stat_struct*) malloc(reserved * sizeof(struct stat_struct));
+    if (global.stats != NULL)
+        free(global.stats);
+    global.stats = (struct stat_struct *) malloc(reserved * sizeof(struct stat_struct));
     while(!feof(global.statfile))
     {
         if (reserved <= global.N_stats)
@@ -214,9 +178,9 @@ void read_statisticsfile_data()
     // there will be a row with zeros because the end of file. Hence decreese the valueable number of raws.
     global.N_stats --;
     fclose(global.statfile);
-    global.show_x = true;
-    global.show_y = true;
-    global.show_z = true;
+    global.graph.show_x = true;
+    global.graph.show_y = true;
+    global.graph.show_z = true;
 }
 
 void write_frame_data_to_file()
