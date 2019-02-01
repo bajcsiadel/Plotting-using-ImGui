@@ -52,6 +52,11 @@ struct movie_window
 {
     unsigned int width;
     unsigned int height;
+
+    unsigned int poz_x;
+    unsigned int poz_y;
+
+    float proportion_x, proportion_y;
     
     bool trajectories_on;
     unsigned int particles_tracked;
@@ -59,6 +64,11 @@ struct movie_window
     float traj_width;
 
     bool show_grid_lines;
+    float grid_line_width;
+    ImVec4 grid_color;
+
+    bool show_particles;
+    bool show_pinningsites;
 };
 
 struct graph_window
@@ -96,8 +106,6 @@ struct global_struct
     float zoom_x0,zoom_y0;         //lower left corner
     float zoom_x1,zoom_y1;         //upper right corner
     float zoom_deltax,zoom_deltay; //size of the zoomed area
-
-    float movie_proportion_x, movie_proportion_y;
     
     float radius_particle;
     float radius_vertex;
@@ -118,6 +126,9 @@ struct global_struct
     unsigned int N_objects;
     unsigned int N_particles;
     unsigned int N_pinningsites;
+    
+    double pinningsite_r;
+    double particle_r;
     
     //all objects in the movie file
     struct object_struct **objects;

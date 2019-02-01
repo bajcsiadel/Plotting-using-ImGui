@@ -69,6 +69,8 @@ int initWindow()
     // Setup Style
     StyleColorsLight();
 
+    global.SY = global.SX * (sqrt(3.0) / 2.0);
+
     global.window.clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     global.window.margin = 10;
     global.video.button_size = 28;
@@ -79,10 +81,16 @@ int initWindow()
     global.video.step = 1;
 
     global.movie.width = global.video.width - 2 * global.window.margin;
-    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - 20; // filenamr height
-    
-    global.movie_proportion_x = ((double) global.movie.width - 20) / global.SX;
-    global.movie_proportion_y = ((double) global.movie.height - 20) / global.SY;
+    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - 20; // filename height
+        
+    global.movie.proportion_x = ((double) global.movie.width - 20) / global.SX;
+    global.movie.proportion_y = ((double) global.movie.height - 20) / global.SY;
+
+    global.movie.poz_x = 3 * global.window.margin;
+    global.movie.grid_color = colors[1];
+
+    global.movie.show_particles = true;
+    global.movie.show_pinningsites = true;
 
     global.graph.width = global.video.width;
     global.graph.height = global.video.height / 2;
@@ -96,53 +104,102 @@ int initWindow()
     return 1;
 }
 
+void drawGrid(ImDrawList *draw_list)
+{
+    unsigned int N_rows, N_columns;
+    unsigned int i;
+    float dx, dy;
+    ImU32 color;
+
+    N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
+    N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
+
+    dx = global.SX / N_columns;
+    dy = global.SY / N_rows;
+
+    color = ImColor(global.movie.grid_color);
+
+    for (i = 1; i < N_rows; i++) {
+        float y0 = i * dy, y1 = i * dy;
+        float x0 = 0.0, x1 = global.SX;
+
+        transformMovieCoordinates(&x0, &y0);
+        transformMovieCoordinates(&x1, &y1);
+
+        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+    }
+
+    for (i = 1; i < N_columns; i++) {
+        float x0 = i * dx, x1 = i * dx;
+        float y0 = 0.0, y1 = global.SY;
+
+        transformMovieCoordinates(&x0, &y0);
+        transformMovieCoordinates(&x1, &y1);
+
+        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+    }
+}
+
 void initMovie(bool show_video_window)
 {
     unsigned int i, n, c;
     int j;
     float x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
+    ImVec2 poz;
 
     BeginChild("Test", ImVec2(global.movie.width, global.movie.height), true);
-    draw_list = GetWindowDrawList();
-    n = 0;
-    for (i = 0; i < global.N_objects; i++)
-    {
-        x = global.objects[global.current_frame][i].x;
-        y = global.objects[global.current_frame][i].y;
-        r = global.objects[global.current_frame][i].R;
-        transformMovieCoordinates(&x, &y);
-        transformDistance(&r);
-        c = global.objects[global.current_frame][i].color;
-        if (c < 0 || c > 9) c = 0;
-        const ImU32 col32 = ImColor(colors[c]);
-        if (c == 2 || c == 3) 
-        {
-            draw_list->AddCircleFilled(ImVec2((int)x, (int)y), r, col32, 36);
-            if (global.movie.trajectories_on)
-            {
-                if (n < global.movie.particles_tracked)
-                {
-                    n ++;
-                    for (j = 0; j < global.current_frame - 1; j++)
-                    {
-                        x1 = global.objects[j][i].x;
-                        y1 = global.objects[j][i].y;
 
-                        x2 = global.objects[j + 1][i].x;
-                        y2 = global.objects[j + 1][i].y;
-                        if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+        float sy = global.SY;
+        transformDistance(&sy);
+        poz = GetWindowPos();
+        global.movie.poz_y = (global.movie.height - sy) / 2 + poz.y + 30;
+
+        draw_list = GetWindowDrawList();
+        if (global.movie.show_grid_lines)
+            drawGrid(draw_list);
+        n = 0;
+        for (i = 0; i < global.N_objects; i++)
+        {
+            x = global.objects[global.current_frame][i].x;
+            y = global.objects[global.current_frame][i].y;
+            r = global.objects[global.current_frame][i].R;
+            transformMovieCoordinates(&x, &y);
+            transformDistance(&r);
+            c = global.objects[global.current_frame][i].color;
+            if (c < 0 || c > 9) c = 0;
+            const ImU32 col32 = ImColor(colors[c]);
+            if (global.objects[global.current_frame][i].R == global.particle_r) 
+            {
+                if (global.movie.show_particles) {
+                    draw_list->AddCircleFilled(ImVec2((int)x, (int)y), r, col32, 36);
+                    if (global.movie.trajectories_on)
+                    {
+                        if (n < global.movie.particles_tracked)
                         {
-                            transformMovieCoordinates(&x1, &y1);
-                            transformMovieCoordinates(&x2, &y2);
-                            draw_list->AddLine(ImVec2((int)x1, (int)y1), ImVec2((int)x2, (int)y2), ImColor(global.movie.traj_color), global.movie.traj_width);
+                            n ++;
+                            for (j = 0; j < global.current_frame - 1; j++)
+                            {
+                                x1 = global.objects[j][i].x;
+                                y1 = global.objects[j][i].y;
+
+                                x2 = global.objects[j + 1][i].x;
+                                y2 = global.objects[j + 1][i].y;
+                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                {
+                                    transformMovieCoordinates(&x1, &y1);
+                                    transformMovieCoordinates(&x2, &y2);
+                                    draw_list->AddLine(ImVec2((int) x1, (int) y1), ImVec2((int)x2, (int)y2), ImColor(global.movie.traj_color), global.movie.traj_width);
+                                }
+                            }
                         }
                     }
                 }
             }
+            else 
+                if (global.movie.show_pinningsites)
+                    draw_list->AddCircle(ImVec2((int) x, (int) y), r, col32, 36, 1);
         }
-        else draw_list->AddCircle(ImVec2((int)x, (int)y), r, col32, 36, 1);
-    }
     EndChild();
 }
 
@@ -594,36 +651,38 @@ void initSettingsWindow(bool *show)
     
     if (CollapsingHeader("Movie"))
     {
-        Checkbox("Toggle trajectory", &global.movie.trajectories_on);
-        if (global.movie.trajectories_on)
-        {
-            float spacing = GetStyle().ItemInnerSpacing.x;
-            PushButtonRepeat(true);
-            if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
-            SameLine(0.0f, spacing);
-            if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
-            PopButtonRepeat();
-            SameLine();
-            Text("%d", global.movie.particles_tracked);
+        Checkbox("Show pinningsites", &global.movie.show_pinningsites);
+        Checkbox("Show particles", &global.movie.show_particles);
+        Checkbox("Show grid lines", &global.movie.show_grid_lines);
+        if (global.movie.show_grid_lines) {
+            ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
+            DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
+        }
+        if (global.movie.show_particles) {
+            Checkbox("Toggle trajectory", &global.movie.trajectories_on);
+            if (global.movie.trajectories_on)
+            {
+                float spacing = GetStyle().ItemInnerSpacing.x;
+                PushButtonRepeat(true);
+                if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
+                SameLine(0.0f, spacing);
+                if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
+                PopButtonRepeat();
+                SameLine();
+                Text("%d", global.movie.particles_tracked);
 
-            ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
-            SameLine(); 
-            ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
-            DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
-            ShowHelpMarker("Click and drag to change the value");
+                ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
+                SameLine(); 
+                ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
+                DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
+                ShowHelpMarker("Click and drag to change the value");
+            }
         }
         // if (TreeNode("Zoom"))
         // {
         //     TreePop();
         //     Separator();
         // }
-        Checkbox("Show grid lines", &global.movie.show_grid_lines);
-        if (global.movie.show_grid_lines)
-        {
-            unsigned int N_rows, N_columns;
-            // N_rows = (int)sqrt((double) global.N_);
-            // N_columns = N_rows;
-        }
     }
     if (CollapsingHeader("Graph"))
     {
@@ -735,14 +794,14 @@ void transformMovieCoordinates(float *x, float *y)
     *y = *y - global.zoom_y0;
     *y = global.SY - *y;
 
-    *x = *x / global.zoom_deltax * global.movie_proportion_x * global.SX + 3 * global.window.margin;
-    *y = *y / global.zoom_deltay * global.movie_proportion_y * global.SY + 11 * global.window.margin - 90;
+    *x = *x / global.zoom_deltax * global.movie.proportion_x * global.SX + global.movie.poz_x;
+    *y = *y / global.zoom_deltay * global.movie.proportion_y * global.SY + global.movie.poz_y;
 }
 
 //transforms from simulation unit distances to Opengl units
 void transformDistance(float *r)
 {
-    *r = *r * global.movie_proportion_x;
+    *r = *r * global.movie.proportion_x;
 }
 
 void readImage(GLuint *texture, const char *filename)

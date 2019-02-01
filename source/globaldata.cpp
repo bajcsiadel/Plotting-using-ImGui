@@ -33,9 +33,6 @@ void initialize_global_data()
     global.zoom_y1 = global.SY;
     global.zoom_deltay = global.zoom_y1 - global.zoom_y0;
     
-    global.radius_vertex = 0.01;
-    global.radius_particle = 0.01;
-    
     global.length = 100;
     global.moviefilename = (char *) malloc(global.length);
     strncpy(global.moviefilename, "../../Time-Crystals/results/movies/10ero_4417.mvi", 50);
@@ -52,6 +49,7 @@ void initialize_global_data()
     global.movie.particles_tracked = 5;
     global.movie.traj_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
     global.movie.traj_width = 0.5;
+    global.movie.grid_line_width = 0.5;
 }
 
 void read_moviefile_data()
@@ -119,8 +117,12 @@ void read_moviefile_data()
     }
     global.N_frames --;
     for (i = 0; i < global.N_objects; i++) 
-        if (global.objects[0][i].color != 2 && global.objects[0][i].color != 3)
+        if (global.objects[0][i].color != 2 && global.objects[0][i].color != 3) {
             global.N_pinningsites ++;
+            global.pinningsite_r = global.objects[0][i].R;
+        } else {
+            global.particle_r = global.objects[0][i].R;
+        }
     global.N_particles = global.N_objects - global.N_pinningsites; 
 
     printf("Movie has %d frames\n", global.N_frames);
