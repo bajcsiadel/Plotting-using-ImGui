@@ -69,6 +69,7 @@ struct movie_window
 
     bool show_particles;
     bool show_pinningsites;
+    bool show_just_center_pinningsites;
 };
 
 struct graph_window

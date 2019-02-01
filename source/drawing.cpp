@@ -172,7 +172,7 @@ void initMovie(bool show_video_window)
             if (global.objects[global.current_frame][i].R == global.particle_r) 
             {
                 if (global.movie.show_particles) {
-                    draw_list->AddCircleFilled(ImVec2((int)x, (int)y), r, col32, 36);
+                    draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
                     if (global.movie.trajectories_on)
                     {
                         if (n < global.movie.particles_tracked)
@@ -189,7 +189,7 @@ void initMovie(bool show_video_window)
                                 {
                                     transformMovieCoordinates(&x1, &y1);
                                     transformMovieCoordinates(&x2, &y2);
-                                    draw_list->AddLine(ImVec2((int) x1, (int) y1), ImVec2((int)x2, (int)y2), ImColor(global.movie.traj_color), global.movie.traj_width);
+                                    draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
                                 }
                             }
                         }
@@ -197,8 +197,12 @@ void initMovie(bool show_video_window)
                 }
             }
             else 
-                if (global.movie.show_pinningsites)
-                    draw_list->AddCircle(ImVec2((int) x, (int) y), r, col32, 36, 1);
+                if (global.movie.show_pinningsites) {
+                    if (global.movie.show_just_center_pinningsites)
+                        draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
+                    else
+                        draw_list->AddCircle(ImVec2(x, y), r, col32, 36, 1);
+                }
         }
     EndChild();
 }
@@ -253,7 +257,6 @@ void initVideoWindow(bool *show_video_window)
     if (IsItemClicked())
         global.current_frame = global.N_frames - 1;
     SameLine();
-
     PopStyleColor(2);
 
     PushItemWidth(-50);
@@ -651,13 +654,18 @@ void initSettingsWindow(bool *show)
     
     if (CollapsingHeader("Movie"))
     {
+        Text("Pinningsites");
         Checkbox("Show pinningsites", &global.movie.show_pinningsites);
-        Checkbox("Show particles", &global.movie.show_particles);
-        Checkbox("Show grid lines", &global.movie.show_grid_lines);
+        Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
         if (global.movie.show_grid_lines) {
             ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
             DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
         }
+        Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
+        Separator();
+
+        Text("Particles");
+        Checkbox("Show particles", &global.movie.show_particles);
         if (global.movie.show_particles) {
             Checkbox("Toggle trajectory", &global.movie.trajectories_on);
             if (global.movie.trajectories_on)
@@ -678,11 +686,13 @@ void initSettingsWindow(bool *show)
                 ShowHelpMarker("Click and drag to change the value");
             }
         }
-        // if (TreeNode("Zoom"))
-        // {
-        //     TreePop();
-        //     Separator();
-        // }
+        Separator();
+
+        if (TreeNode("Zoom"))
+        {
+            TreePop();
+            Separator();
+        }
     }
     if (CollapsingHeader("Graph"))
     {
