@@ -94,7 +94,6 @@ struct settings_window
 
 struct global_struct
 {
-    
     //OpenGl window size
     unsigned int Windowsize_x;           //window size in pixels x direction
     unsigned int Windowsize_y;           //window size in pixels y direction
@@ -143,12 +142,15 @@ struct global_struct
 
 extern struct global_struct global;
 
+char* remove_extension(char*);
+char* substr(const char*, int, int);
+void replace_last(char*, const char*, const char*);
 void initialize_global_data(void);
 
 void freeArrays();
 
-void read_moviefile_data();
-void read_statisticsfile_data();
+void read_moviefile_data(bool = true);
+void read_statisticsfile_data(bool = true);
 
 void write_frame_data_to_file();
 

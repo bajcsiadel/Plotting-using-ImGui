@@ -610,7 +610,8 @@ void initSettingsMenuBar()
     dlg.chooseFileDialog(open_movie || open_stats, "../../Time-Crystals/results", ".mvi;.txt");
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
-        if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0)
+        if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0 &&
+            strncmp(dlg.getChosenPath(), global.statfilename, (length < global.length ? length : global.length)) != 0)
         {
             if (length > global.length)
             {
@@ -618,17 +619,20 @@ void initSettingsMenuBar()
                 global.moviefilename = (char *) realloc(global.moviefilename, length);
                 global.statfilename = (char *) realloc(global.statfilename, length);
             }
-            if (global.settings.open)
+            if (global.settings.open == 1)
             {
                 strncpy(global.statfilename, dlg.getChosenPath(), length);
                 global.statfilename[length] = '\0';
                 read_statisticsfile_data();
                 open_stats = false;
-            } else {
+                global.settings.open = -1;
+            } else if (global.settings.open == 0)
+            {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
                 global.moviefilename[length] = '\0';
                 read_moviefile_data();
                 open_movie = false;
+                global.settings.open = -1;
             }
             global.current_frame = 0;
             global.video.play = true;
@@ -852,7 +856,12 @@ void AddFileLocation(const char *filename)
 {
     char *ptr;
     ptr = realpath(filename, NULL);
+    if (ptr == NULL) {
+        ptr = (char *) malloc(255);
+        snprintf(ptr, 255, "Could not open file! %s", filename);
+    }
     PushTextWrapPos(0.0f);
     TextUnformatted(ptr);
     PopTextWrapPos();
+    free(ptr);
 }

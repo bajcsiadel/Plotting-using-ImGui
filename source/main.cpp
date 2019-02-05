@@ -15,7 +15,6 @@ int main(int, char**)
     initialize_global_data();
 
     read_moviefile_data();
-    read_statisticsfile_data();
     
     // write_frame_data_to_file();
     
