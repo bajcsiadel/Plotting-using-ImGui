@@ -282,7 +282,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
         y2 = *poz_y + *size_y;
     const unsigned int x0 = *poz_x - 50,
         x01 = *poz_x + *size_x,
-        y0 = (y_lims.x < 0 ? *poz_y + *size_y * y_lims.y / (y_lims.y - y_lims.x) : *poz_y + *size_y - a);
+        y0 = (y_lims.x < 0 ? *poz_y + *size_y * y_lims.y / (y_lims.y - y_lims.x) : *poz_y + *size_y - 2 * a);
 
     gray    = ImColor(colors[2]);
     black   = ImColor(colors[3]);
@@ -356,7 +356,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     draw_list->AddText(ImVec2(x - 8, y0), black, "0");
 
     *poz_x = x;
-    *origins_y_pozition = (y_lims.x < 0 ? *size_y * y_lims.y / (y_lims.y - y_lims.x) : *size_y - a);
+    *origins_y_pozition = (unsigned int)y0 - *poz_y;
 }
 
 void initGraphWindow(bool *show)
@@ -425,6 +425,7 @@ void initGraphWindow(bool *show)
             generalTransformCoordinates(&y2, max, size_y, poz_y, true);
             generalTransformCoordinates(&z2, max, size_y, poz_y, true);
 
+            // it has to shift the curves with the distance of negative values (size_y - y0)
             x2 -= size_y - y0;
             y2 -= size_y - y0;
             z2 -= size_y - y0;
