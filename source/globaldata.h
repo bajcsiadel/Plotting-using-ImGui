@@ -142,7 +142,8 @@ struct global_struct
 
 extern struct global_struct global;
 
-char* remove_extension(char*);
+char* remove_extension(const char*);
+char* get_extension(const char*);
 char* substr(const char*, int, int);
 void replace_last(char*, const char*, const char*);
 void initialize_global_data(void);

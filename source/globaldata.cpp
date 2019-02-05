@@ -19,6 +19,9 @@ struct global_struct global;
 const char *movies_dir = "movies";
 const char *stats_dir = "stats";
 
+const char *movie_extension = ".mvi";
+const char *stat_extension = ".txt";
+
 void initialize_global_data()
 {
 
@@ -68,12 +71,32 @@ void read_moviefile_data(bool first_call)
         free(global.objects);
     }
 
+    if (strcmp(get_extension(global.moviefilename), movie_extension) != 0)
+    {
+        COLOR_ERROR;
+        printf("ERROR (globaldata.cpp: line 77)\n\tExtension do not match. Expected %s but got %s\n", movie_extension, get_extension(global.moviefilename));
+        COLOR_DEFAULT;
+
+        global.N_frames = 0;
+        global.N_objects = 0;
+        global.N_particles = 0;
+        global.N_pinningsites = 0;
+
+        global.objects = NULL;
+
+        global.pinningsite_r = 0.0;
+        global.particle_r = 0.0;
+
+        global.movie.show_grid_lines = false;
+        return;
+    }
+
     //open the file, if it cannot be found, exit with error
     global.moviefile = ImFileOpen(global.moviefilename, "rb");
     if (global.moviefile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 73)\nCannot find/open movie file: %s\n", global.moviefilename);
+        printf("ERROR (globaldata.cpp: line 73)\n\tCannot find/open movie file: %s\n", global.moviefilename);
         COLOR_DEFAULT;
 
         global.N_frames = 0;
@@ -176,11 +199,26 @@ void read_statisticsfile_data(bool first_call)
     if (global.stats != NULL)
         free(global.stats);
 
+    if (strcmp(get_extension(global.statfilename), stat_extension) != 0)
+    {
+        COLOR_ERROR;
+        printf("ERROR (globaldata.cpp: line 202)\n\tExtension do not match. Expected %s but got %s\n", stat_extension, get_extension(global.statfilename));
+        COLOR_DEFAULT;
+
+        global.N_stats = 0;
+        global.stats = NULL;
+
+        global.graph.show_x = false;
+        global.graph.show_y = false;
+        global.graph.show_z = false;
+        return;
+    }
+
     global.statfile = ImFileOpen(global.statfilename, "r");
     if (global.statfile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 169)\nCannot find/open statistics file: %s\n", global.statfilename);
+        printf("ERROR (globaldata.cpp: line 169)\n\tCannot find/open statistics file: %s\n", global.statfilename);
         COLOR_DEFAULT;
 
         global.N_stats = 0;
@@ -281,13 +319,30 @@ void freeArrays()
     free(global.stats);
 }
 
-char* remove_extension(char* filename)
+char* remove_extension(const char* filename)
+{
+    if (get_extension(filename) != NULL)
+    {
+        const size_t len = strlen(filename);
+        size_t i;
+
+        for (i = len - 1; i >= 0 && filename[i] != '.'; i--);
+        return substr(filename, 0, i);
+    } else
+    {
+        return NULL;
+    }
+    
+}
+
+char* get_extension(const char *filename)
 {
     const size_t len = strlen(filename);
-    size_t i;
+    int i;
 
     for (i = len - 1; i >= 0 && filename[i] != '.'; i--);
-    return substr(filename, 0, i);
+    if (i == -1) return NULL;
+    return substr(filename, i, len - i);
 }
 
 char* substr(const char* from, int start, int count)
@@ -313,7 +368,7 @@ void replace_last(char *in, const char *to_replace, const char *replace_with)
     if (ptr == NULL)
     {
         COLOR_WARNING;
-        printf("WARNING (globaldata.cpp: line 283)\nNo much found %s in %s\n", to_replace, in);
+        printf("WARNING (globaldata.cpp: line 283)\n\tNo much found %s in %s\n", to_replace, in);
         COLOR_DEFAULT;
         return;
     }
