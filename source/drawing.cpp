@@ -1,11 +1,13 @@
 #include "drawing.h"
 #include "globaldata.h"
+#include "color.h"
 
 #include "imgui.h"
 #include "imgui-SFML.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl2.h"
 #include "imguifilesystem.h"
+#include "imgui_internal.h"
 
 #include <SFML/Graphics/Image.hpp>
 
@@ -52,7 +54,12 @@ int initWindow()
     // Setup window
     global.window.window = glfwCreateWindow(global.Windowsize_x, global.Windowsize_y, "Plot", NULL, NULL);
     if (global.window.window == NULL)
+    {
+        COLOR_ERROR;
+        printf("ERROR (drawing.cpp: line 58)\n\tCould not create window!\n");
+        COLOR_DEFAULT;
         return 0;
+    }
 
     glfwMakeContextCurrent(global.window.window);
     glfwSwapInterval(1); // Enable vsync
@@ -659,10 +666,12 @@ void initSettingsWindow(bool *show)
         BulletText("Double-click on title bar to collapse window.");
         BulletText("CTRL+Click on a slider to input value as text.");
     }
-    
+
+    if (global.objects == NULL) pushDisable();
     if (CollapsingHeader("Movie"))
     {
         Text("Pinningsites");
+        if (global.N_pinningsites == 0) pushDisable();
         Checkbox("Show pinningsites", &global.movie.show_pinningsites);
         Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
         if (global.movie.show_grid_lines) {
@@ -671,8 +680,10 @@ void initSettingsWindow(bool *show)
         }
         Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
         Separator();
+        if (global.N_pinningsites == 0) popDisable();
 
         Text("Particles");
+        if (global.N_particles == 0) pushDisable();
         Checkbox("Show particles", &global.movie.show_particles);
         if (global.movie.show_particles) {
             Checkbox("Toggle trajectory", &global.movie.trajectories_on);
@@ -695,6 +706,7 @@ void initSettingsWindow(bool *show)
             }
         }
         Separator();
+        if (global.N_particles == 0) popDisable();
 
         if (TreeNode("Zoom"))
         {
@@ -702,6 +714,9 @@ void initSettingsWindow(bool *show)
             Separator();
         }
     }
+    if (global.objects == NULL) popDisable();
+
+    if (global.stats == NULL) pushDisable();
     if (CollapsingHeader("Graph"))
     {
         if (TreeNode("Data shown"))
@@ -713,6 +728,7 @@ void initSettingsWindow(bool *show)
             Separator();
         }
     }
+    if (global.stats == NULL) popDisable();
     
     End();
 }
@@ -875,4 +891,16 @@ void AddFileLocation(const char *filename)
     TextUnformatted(ptr);
     PopTextWrapPos();
     free(ptr);
+}
+
+void pushDisable()
+{
+    PushItemFlag(ImGuiItemFlags_Disabled, true);
+    PushStyleVar(ImGuiStyleVar_Alpha, GetStyle().Alpha * 0.5f);
+}
+
+void popDisable()
+{
+    PopItemFlag();
+    PopStyleVar();
 }

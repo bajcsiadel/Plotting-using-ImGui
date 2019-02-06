@@ -16,6 +16,8 @@ void initVideoWindow(bool*);
 int initWindow();
 void maxStats(unsigned int*, float*, float*, float*);
 void minStats(unsigned int*, float*, float*, float*);
+void popDisable();
+void pushDisable();
 void readImage(GLuint*, const char*);
 int setupGLFW();
 void ShowHelpMarker(const char*);
