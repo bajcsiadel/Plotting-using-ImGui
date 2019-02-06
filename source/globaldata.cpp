@@ -218,7 +218,7 @@ void read_statisticsfile_data(bool first_call)
     if (global.statfile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 169)\n\tCannot find/open statistics file: %s\n", global.statfilename);
+        printf("ERROR (globaldata.cpp: line 221)\n\tCannot find/open statistics file: %s\n", global.statfilename);
         COLOR_DEFAULT;
 
         global.N_stats = 0;
