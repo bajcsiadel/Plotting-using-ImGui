@@ -77,6 +77,13 @@ void read_moviefile_data(bool first_call)
         printf("ERROR (globaldata.cpp: line 77)\n\tExtension do not match. Expected %s but got %s\n", movie_extension, get_extension(global.moviefilename));
         COLOR_DEFAULT;
 
+        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
+        if (global.length < len) {
+            global.length = len;
+            global.moviefilename = (char *) realloc(global.moviefilename, global.length);
+        }
+        snprintf(global.moviefilename, global.length, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
+
         global.N_frames = 0;
         global.N_objects = 0;
         global.N_particles = 0;
@@ -98,6 +105,13 @@ void read_moviefile_data(bool first_call)
         COLOR_ERROR;
         printf("ERROR (globaldata.cpp: line 73)\n\tCannot find/open movie file: %s\n", global.moviefilename);
         COLOR_DEFAULT;
+
+        size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
+        if (global.length < len) {
+            global.length = len;
+            global.moviefilename = (char *) realloc(global.moviefilename, global.length);
+        }
+        strcat(global.moviefilename, " - Cannot find/open statistics file");
 
         global.N_frames = 0;
         global.N_objects = 0;
@@ -204,6 +218,13 @@ void read_statisticsfile_data(bool first_call)
         COLOR_ERROR;
         printf("ERROR (globaldata.cpp: line 202)\n\tExtension do not match. Expected %s but got %s\n", stat_extension, get_extension(global.statfilename));
         COLOR_DEFAULT;
+        
+        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, get_extension(global.statfilename));
+        if (global.length < len) {
+            global.length = len;
+            global.statfilename = (char *) realloc(global.statfilename, global.length);
+        }
+        snprintf(global.statfilename, global.length, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, get_extension(global.statfilename));
 
         global.N_stats = 0;
         global.stats = NULL;
@@ -220,6 +241,13 @@ void read_statisticsfile_data(bool first_call)
         COLOR_ERROR;
         printf("ERROR (globaldata.cpp: line 221)\n\tCannot find/open statistics file: %s\n", global.statfilename);
         COLOR_DEFAULT;
+
+        size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
+        if (global.length < len) {
+            global.length = len;
+            global.statfilename = (char *) realloc(global.statfilename, global.length);
+        }
+        strcat(global.statfilename, " - Cannot find/open statistics file");
 
         global.N_stats = 0;
         global.stats = NULL;
