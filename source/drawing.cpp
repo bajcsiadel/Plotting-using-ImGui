@@ -159,50 +159,53 @@ void initMovie(bool show_video_window)
         if (global.movie.show_grid_lines)
             drawGrid(draw_list);
         n = 0;
-        for (i = 0; i < global.N_objects; i++)
+        if (global.objects != NULL)
         {
-            x = global.objects[global.current_frame][i].x;
-            y = global.objects[global.current_frame][i].y;
-            r = global.objects[global.current_frame][i].R;
-            transformMovieCoordinates(&x, &y);
-            transformDistance(&r);
-            c = global.objects[global.current_frame][i].color;
-            if (c < 0 || c > 9) c = 0;
-            const ImU32 col32 = ImColor(colors[c]);
-            if (global.objects[global.current_frame][i].R == global.particle_r) 
+            for (i = 0; i < global.N_objects; i++)
             {
-                if (global.movie.show_particles) {
-                    draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
-                    if (global.movie.trajectories_on)
-                    {
-                        if (n < global.movie.particles_tracked)
+                x = global.objects[global.current_frame][i].x;
+                y = global.objects[global.current_frame][i].y;
+                r = global.objects[global.current_frame][i].R;
+                transformMovieCoordinates(&x, &y);
+                transformDistance(&r);
+                c = global.objects[global.current_frame][i].color;
+                if (c < 0 || c > 9) c = 0;
+                const ImU32 col32 = ImColor(colors[c]);
+                if (global.objects[global.current_frame][i].R == global.particle_r) 
+                {
+                    if (global.movie.show_particles) {
+                        draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
+                        if (global.movie.trajectories_on)
                         {
-                            n ++;
-                            for (j = 0; j < global.current_frame - 1; j++)
+                            if (n < global.movie.particles_tracked)
                             {
-                                x1 = global.objects[j][i].x;
-                                y1 = global.objects[j][i].y;
-
-                                x2 = global.objects[j + 1][i].x;
-                                y2 = global.objects[j + 1][i].y;
-                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                n ++;
+                                for (j = 0; j < global.current_frame - 1; j++)
                                 {
-                                    transformMovieCoordinates(&x1, &y1);
-                                    transformMovieCoordinates(&x2, &y2);
-                                    draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
+                                    x1 = global.objects[j][i].x;
+                                    y1 = global.objects[j][i].y;
+
+                                    x2 = global.objects[j + 1][i].x;
+                                    y2 = global.objects[j + 1][i].y;
+                                    if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                    {
+                                        transformMovieCoordinates(&x1, &y1);
+                                        transformMovieCoordinates(&x2, &y2);
+                                        draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                else 
+                    if (global.movie.show_pinningsites) {
+                        if (global.movie.show_just_center_pinningsites)
+                            draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
+                        else
+                            draw_list->AddCircle(ImVec2(x, y), r, col32, 36, 1);
+                    }
             }
-            else 
-                if (global.movie.show_pinningsites) {
-                    if (global.movie.show_just_center_pinningsites)
-                        draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
-                    else
-                        draw_list->AddCircle(ImVec2(x, y), r, col32, 36, 1);
-                }
         }
     EndChild();
 }
@@ -375,117 +378,117 @@ void initGraphWindow(bool *show)
 
     poz_x = global.window.margin;
     poz_y = global.window.margin + global.video.height + global.window.margin;
-
+    
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
     Begin("Graph", show,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
-
         AddFileLocation(global.statfilename);
-
         size_x = global.graph.width - 2 * global.window.margin;
         size_y = global.graph.height - 8.2 * global.window.margin;
         BeginChild("", ImVec2(size_x, size_y), true);
             draw_list = GetWindowDrawList();
-
-            poz_x += 60;
-            poz_y += 52;
-            size_y -= 16;
-            size_x -= 60;
-
-            maxStats(&t_max, &x_max, &y_max, &z_max);
-            minStats(&t_min, &x_min, &y_min, &z_min);
-
-            min = HUGE_VAL_F32;
-            if (global.graph.show_x && min > x_min) min = x_min;
-            if (global.graph.show_y && min > y_min) min = y_min;
-            if ((global.graph.show_z && min > z_min) || min == HUGE_VAL_F32) min = z_min;
-
-            max = (-1) * HUGE_VAL_F32;
-            if (global.graph.show_x && max < x_max) max = x_max;
-            if (global.graph.show_y && max < y_max) max = y_max;
-            if ((global.graph.show_z && max < z_max) || max == (-1) * HUGE_VAL_F32) max = z_max;
             
-            drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
-
-            max = (min < 0 ? max - min : max);
-
-            xc = ImColor(colors[6]);
-            yc = ImColor(colors[7]);
-            zc = ImColor(colors[8]);
-
-            x2 = global.stats[0].x;
-            y2 = global.stats[0].y;
-            z2 = global.stats[0].z;
-            t2 = global.stats[0].time;
-
-            generalTransformCoordinates(&t2, t_max, size_x, poz_x);
-            generalTransformCoordinates(&x2, max, size_y, poz_y, true);
-            generalTransformCoordinates(&y2, max, size_y, poz_y, true);
-            generalTransformCoordinates(&z2, max, size_y, poz_y, true);
-
-            // it has to shift the curves with the distance of negative values (size_y - y0)
-            x2 -= size_y - y0;
-            y2 -= size_y - y0;
-            z2 -= size_y - y0;
-
-            t0 = t2;
-            t_frame = global.current_frame * 100;
-            generalTransformCoordinates(&t_frame, t_max, size_x, poz_x);
-            j = -1;
-            for (i = 1; i < global.N_stats; i++)
+            if (global.stats != NULL)
             {
-                x1 = x2;
-                y1 = y2;
-                z1 = z2;
-                tn = t1 = t2;
+                poz_x += 60;
+                poz_y += 52;
+                size_y -= 16;
+                size_x -= 60;
 
-                x2 = global.stats[i].x;
-                y2 = global.stats[i].y;
-                z2 = global.stats[i].z;
-                t2 = global.stats[i].time;
+                maxStats(&t_max, &x_max, &y_max, &z_max);
+                minStats(&t_min, &x_min, &y_min, &z_min);
+
+                min = HUGE_VAL_F32;
+                if (global.graph.show_x && min > x_min) min = x_min;
+                if (global.graph.show_y && min > y_min) min = y_min;
+                if ((global.graph.show_z && min > z_min) || min == HUGE_VAL_F32) min = z_min;
+
+                max = (-1) * HUGE_VAL_F32;
+                if (global.graph.show_x && max < x_max) max = x_max;
+                if (global.graph.show_y && max < y_max) max = y_max;
+                if ((global.graph.show_z && max < z_max) || max == (-1) * HUGE_VAL_F32) max = z_max;
+                
+                drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
+
+                max = (min < 0 ? max - min : max);
+
+                xc = ImColor(colors[6]);
+                yc = ImColor(colors[7]);
+                zc = ImColor(colors[8]);
+
+                x2 = global.stats[0].x;
+                y2 = global.stats[0].y;
+                z2 = global.stats[0].z;
+                t2 = global.stats[0].time;
 
                 generalTransformCoordinates(&t2, t_max, size_x, poz_x);
                 generalTransformCoordinates(&x2, max, size_y, poz_y, true);
                 generalTransformCoordinates(&y2, max, size_y, poz_y, true);
                 generalTransformCoordinates(&z2, max, size_y, poz_y, true);
 
+                // it has to shift the curves with the distance of negative values (size_y - y0)
                 x2 -= size_y - y0;
                 y2 -= size_y - y0;
                 z2 -= size_y - y0;
 
-                if (global.graph.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
-                if (global.graph.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
-                if (global.graph.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
+                t0 = t2;
+                t_frame = global.current_frame * 100;
+                generalTransformCoordinates(&t_frame, t_max, size_x, poz_x);
+                j = -1;
+                for (i = 1; i < global.N_stats; i++)
+                {
+                    x1 = x2;
+                    y1 = y2;
+                    z1 = z2;
+                    tn = t1 = t2;
 
+                    x2 = global.stats[i].x;
+                    y2 = global.stats[i].y;
+                    z2 = global.stats[i].z;
+                    t2 = global.stats[i].time;
+
+                    generalTransformCoordinates(&t2, t_max, size_x, poz_x);
+                    generalTransformCoordinates(&x2, max, size_y, poz_y, true);
+                    generalTransformCoordinates(&y2, max, size_y, poz_y, true);
+                    generalTransformCoordinates(&z2, max, size_y, poz_y, true);
+
+                    x2 -= size_y - y0;
+                    y2 -= size_y - y0;
+                    z2 -= size_y - y0;
+
+                    if (global.graph.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
+                    if (global.graph.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
+                    if (global.graph.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
+
+                    if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
+                        if (t_frame > t1 && t_frame <= t2)
+                        {
+                            j = i;  // t_frame value is between (i - 1) and i
+                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        }
+                }
                 if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
-                    if (t_frame > t1 && t_frame <= t2)
+                    if (j == -1)
                     {
-                        j = i;  // t_frame value is between (i - 1) and i
-                        draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        if (t_frame <= t0)
+                        {
+                            j = 0;
+                            t_frame += 2;
+                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        }
+
+                        if (t_frame > tn)
+                        {
+                            j = global.N_stats - 1;
+                            t_frame -= 2;
+                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        }
                     }
             }
-            if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
-                if (j == -1)
-                {
-                    if (t_frame <= t0)
-                    {
-                        j = 0;
-                        t_frame += 2;
-                        draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
-                    }
-
-                    if (t_frame > tn)
-                    {
-                        j = global.N_stats - 1;
-                        t_frame -= 2;
-                        draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
-                    }
-                }
-
         EndChild();
-        calculateCoordinatesOnGraph(j);
+        if (global.stats != NULL) calculateCoordinatesOnGraph(j);
     End();
 }
 
@@ -761,16 +764,19 @@ void maxStats(unsigned int *t_max, float *x_max, float *y_max, float *z_max)
 {
     unsigned int i;
 
-    *t_max = global.stats[0].time;
-    *x_max = global.stats[0].x;
-    *y_max = global.stats[0].y;
-    *z_max = global.stats[0].z;
-    for (i = 1; i < global.N_stats; i++)
+    if (global.stats != NULL) 
     {
-        if (global.stats[i].time > *t_max) *t_max = global.stats[i].time;
-        if (global.stats[i].x > *x_max) *x_max = global.stats[i].x;
-        if (global.stats[i].y > *y_max) *y_max = global.stats[i].y;
-        if (global.stats[i].z > *z_max) *z_max = global.stats[i].z;
+        *t_max = global.stats[0].time;
+        *x_max = global.stats[0].x;
+        *y_max = global.stats[0].y;
+        *z_max = global.stats[0].z;
+        for (i = 1; i < global.N_stats; i++)
+        {
+            if (global.stats[i].time > *t_max) *t_max = global.stats[i].time;
+            if (global.stats[i].x > *x_max) *x_max = global.stats[i].x;
+            if (global.stats[i].y > *y_max) *y_max = global.stats[i].y;
+            if (global.stats[i].z > *z_max) *z_max = global.stats[i].z;
+        }
     }
 }
 
@@ -778,16 +784,19 @@ void minStats(unsigned int *t_min, float *x_min, float *y_min, float *z_min)
 {
     unsigned int i;
 
-    *t_min = global.stats[0].time;
-    *x_min = global.stats[0].x;
-    *y_min = global.stats[0].y;
-    *z_min = global.stats[0].z;
-    for (i = 1; i < global.N_stats; i++)
+    if (global.stats != NULL)
     {
-        if (global.stats[i].time < *t_min) *t_min = global.stats[i].time;
-        if (global.stats[i].x < *x_min) *x_min = global.stats[i].x;
-        if (global.stats[i].y < *y_min) *y_min = global.stats[i].y;
-        if (global.stats[i].z < *z_min) *z_min = global.stats[i].z;
+        *t_min = global.stats[0].time;
+        *x_min = global.stats[0].x;
+        *y_min = global.stats[0].y;
+        *z_min = global.stats[0].z;
+        for (i = 1; i < global.N_stats; i++)
+        {
+            if (global.stats[i].time < *t_min) *t_min = global.stats[i].time;
+            if (global.stats[i].x < *x_min) *x_min = global.stats[i].x;
+            if (global.stats[i].y < *y_min) *y_min = global.stats[i].y;
+            if (global.stats[i].z < *z_min) *z_min = global.stats[i].z;
+        }
     }
 }
 
@@ -858,8 +867,9 @@ void AddFileLocation(const char *filename)
     char *ptr;
     ptr = realpath(filename, NULL);
     if (ptr == NULL) {
-        ptr = (char *) malloc(255);
-        snprintf(ptr, 255, "Could not open file! %s", filename);
+        size_t len = strlen(filename);
+        ptr = (char *) malloc(len + 1);
+        memcpy(ptr, filename, len);
     }
     PushTextWrapPos(0.0f);
     TextUnformatted(ptr);

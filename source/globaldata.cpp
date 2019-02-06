@@ -108,7 +108,7 @@ void read_moviefile_data(bool first_call)
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
         if (global.length < len) {
-            global.length = len;
+            global.length = len + 1;
             global.moviefilename = (char *) realloc(global.moviefilename, global.length);
         }
         strcat(global.moviefilename, " - Cannot find/open statistics file");
@@ -244,7 +244,7 @@ void read_statisticsfile_data(bool first_call)
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
         if (global.length < len) {
-            global.length = len;
+            global.length = len + 1;
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
         strcat(global.statfilename, " - Cannot find/open statistics file");
