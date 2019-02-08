@@ -70,12 +70,20 @@ struct movie_window
     bool show_particles;
     bool show_pinningsites;
     bool show_just_center_pinningsites;
+
+    bool monocrome_particles;
+    ImVec4 particle_color;
+
+    bool monocrome_pinningsites;
+    ImVec4 pinningsite_color;
 };
 
 struct graph_window
 {
     unsigned int width;
     unsigned int height;
+
+    char **column_names;
 
     bool show_x, show_y, show_z;
 };

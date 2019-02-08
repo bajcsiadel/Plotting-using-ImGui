@@ -57,6 +57,12 @@ void initialize_global_data()
     global.graph.show_x = true;
     global.graph.show_y = true;
     global.graph.show_z = true;
+
+    global.movie.monocrome_particles = false;
+    global.movie.particle_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
+
+    global.movie.monocrome_pinningsites = false;
+    global.movie.pinningsite_color = ImVec4(1.0000, 0.0000, 0.0000, 1.0000);
 }
 
 void read_moviefile_data(bool first_call)
@@ -65,6 +71,7 @@ void read_moviefile_data(bool first_call)
     int intholder;
     float floatholder;
     char* filename;
+    bool can_read = true;
 
     if (global.objects != NULL) {
         for (i = 0; i < global.N_frames; i++) free(global.objects[i]);
@@ -74,7 +81,7 @@ void read_moviefile_data(bool first_call)
     if (strcmp(get_extension(global.moviefilename), movie_extension) != 0)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 77)\n\tExtension do not match. Expected %s but got %s\n", movie_extension, get_extension(global.moviefilename));
+        printf("ERROR (globaldata.cpp: line 83)\n\tExtension do not match. Expected %s but got %s\n", movie_extension, get_extension(global.moviefilename));
         COLOR_DEFAULT;
 
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
@@ -82,7 +89,8 @@ void read_moviefile_data(bool first_call)
             global.length = len;
             global.moviefilename = (char *) realloc(global.moviefilename, global.length);
         }
-        snprintf(global.moviefilename, global.length, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
+        len = strlen(global.moviefilename);
+        snprintf(&global.moviefilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", movie_extension, get_extension(global.moviefilename));
 
         global.N_frames = 0;
         global.N_objects = 0;
@@ -95,7 +103,7 @@ void read_moviefile_data(bool first_call)
         global.particle_r = 0.0;
 
         global.movie.show_grid_lines = false;
-        return;
+        can_read = false;
     }
 
     //open the file, if it cannot be found, exit with error
@@ -103,7 +111,7 @@ void read_moviefile_data(bool first_call)
     if (global.moviefile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 73)\n\tCannot find/open movie file: %s\n", global.moviefilename);
+        printf("ERROR (globaldata.cpp: line 112)\n\tCannot find/open movie file: %s\n", global.moviefilename);
         COLOR_DEFAULT;
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
@@ -111,7 +119,8 @@ void read_moviefile_data(bool first_call)
             global.length = len + 1;
             global.moviefilename = (char *) realloc(global.moviefilename, global.length);
         }
-        strcat(global.moviefilename, " - Cannot find/open statistics file");
+        len = strlen(global.moviefilename);
+        snprintf(&global.moviefilename[len], global.length - len, " - Cannot find/open movie file");
 
         global.N_frames = 0;
         global.N_objects = 0;
@@ -124,66 +133,78 @@ void read_moviefile_data(bool first_call)
         global.particle_r = 0.0;
 
         global.movie.show_grid_lines = false;
-        return;
+        can_read = false;
     }
 
-    //pre-scan the file to find out how many frames/partciles we have
-    //this could be modified to be capable of finding the frames that are complete
-    printf("Read movie file %s\n", global.moviefilename);
-    global.N_frames = 0;
-    global.N_objects = 0;
-    global.N_pinningsites = 0;
-    reserved = 100;
-    global.objects = (struct object_struct **) malloc(reserved * sizeof(struct object_struct *));
-
-    while(!feof(global.moviefile))
+    if (can_read)
     {
-        if (reserved <= global.N_frames)
+        //pre-scan the file to find out how many frames/partciles we have
+        //this could be modified to be capable of finding the frames that are complete
+        printf("Read movie file %s\n", global.moviefilename);
+        global.N_frames = 0;
+        global.N_objects = 0;
+        reserved = 100;
+        global.objects = (struct object_struct **) malloc(reserved * sizeof(struct object_struct *));
+
+        while(!feof(global.moviefile))
         {
-            reserved += 50;
-            global.objects = (struct object_struct **) realloc(global.objects, reserved * sizeof(struct object_struct *));
-        }
+            if (reserved <= global.N_frames)
+            {
+                reserved += 50;
+                global.objects = (struct object_struct **) realloc(global.objects, reserved * sizeof(struct object_struct *));
+            }
 
-        fread(&intholder, sizeof(int), 1, global.moviefile);
-        if (global.N_frames == 0)
-            global.N_objects = (unsigned int) intholder;
-        
-        // reading frame number
-        fread(&intholder, sizeof(int), 1, global.moviefile);
-        
-        global.objects[global.N_frames] = (struct object_struct *) malloc(global.N_objects * sizeof(struct object_struct));
-        for (i = 0; i < global.N_objects; i++) {
-            //read in the color
             fread(&intholder, sizeof(int), 1, global.moviefile);
-            global.objects[global.N_frames][i].color = intholder;
-            //read in the ID
+            if (global.N_frames == 0)
+                global.N_objects = (unsigned int) intholder;
+            
+            // reading frame number
             fread(&intholder, sizeof(int), 1, global.moviefile);
-            //read in the x coordinate
-            fread(&floatholder, sizeof(float), 1,  global.moviefile);
-            global.objects[global.N_frames][i].x = floatholder;
-            //read in the y coordinate
-            fread(&floatholder, sizeof(float), 1,  global.moviefile);
-            global.objects[global.N_frames][i].y = floatholder;
-            //read in extra data that is unused (legacy)
-            fread(&floatholder, sizeof(float), 1, global.moviefile);
-            global.objects[global.N_frames][i].R = floatholder;
+            
+            global.objects[global.N_frames] = (struct object_struct *) malloc(global.N_objects * sizeof(struct object_struct));
+            for (i = 0; i < global.N_objects; i++) {
+                //read in the color
+                fread(&intholder, sizeof(int), 1, global.moviefile);
+                global.objects[global.N_frames][i].color = intholder;
+                //read in the ID
+                fread(&intholder, sizeof(int), 1, global.moviefile);
+                //read in the x coordinate
+                fread(&floatholder, sizeof(float), 1,  global.moviefile);
+                global.objects[global.N_frames][i].x = floatholder;
+                //read in the y coordinate
+                fread(&floatholder, sizeof(float), 1,  global.moviefile);
+                global.objects[global.N_frames][i].y = floatholder;
+                //read in extra data that is unused (legacy)
+                fread(&floatholder, sizeof(float), 1, global.moviefile);
+                global.objects[global.N_frames][i].R = floatholder;
+            }
+            global.N_frames ++;
         }
-        global.N_frames ++;
+        global.N_frames --;
+        global.pinningsite_r = global.objects[0][0].R;
+        // considering that the first element is pinningsite
+        global.N_pinningsites = 1;
+        for (i = 1; i < global.N_objects; i++) 
+            if (global.pinningsite_r == global.objects[0][i].R) {
+                global.N_pinningsites ++;
+            } else 
+                if (global.pinningsite_r < global.objects[0][i].R)
+                {
+                    double holder = global.pinningsite_r;
+                    global.pinningsite_r = global.objects[0][i].R;
+                    global.particle_r = holder;
+                    global.N_pinningsites = i - global.N_pinningsites;
+                    // adding the current element as pinningsite
+                    global.N_pinningsites ++;
+                } else
+                    global.particle_r = global.objects[0][i].R;
+        global.N_particles = global.N_objects - global.N_pinningsites; 
+
+        printf("Movie has %d frames\n", global.N_frames);
+        printf("Movie has %d objects in a frame from which %d particles and %d pinningsites\n", global.N_objects, global.N_particles, global.N_pinningsites);
+
+        fclose(global.moviefile);
     }
-    global.N_frames --;
-    for (i = 0; i < global.N_objects; i++) 
-        if (global.objects[0][i].color != 2 && global.objects[0][i].color != 3) {
-            global.N_pinningsites ++;
-            global.pinningsite_r = global.objects[0][i].R;
-        } else {
-            global.particle_r = global.objects[0][i].R;
-        }
-    global.N_particles = global.N_objects - global.N_pinningsites; 
-
-    printf("Movie has %d frames\n", global.N_frames);
-    printf("Movie has %d objects in a frame from which %d particles and %d pinningsites\n", global.N_objects, global.N_particles, global.N_pinningsites);
-
-    fclose(global.moviefile);
 
     if (first_call)
     {
@@ -209,6 +230,8 @@ void read_statisticsfile_data(bool first_call)
     unsigned int reserved;
     float dummy;
     char* filename;
+    bool can_read = true;
+    char charholder[255];
 
     if (global.stats != NULL)
         free(global.stats);
@@ -224,7 +247,8 @@ void read_statisticsfile_data(bool first_call)
             global.length = len;
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
-        snprintf(global.statfilename, global.length, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, get_extension(global.statfilename));
+        len = strlen(global.statfilename);
+        snprintf(&global.statfilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", stat_extension, get_extension(global.statfilename));
 
         global.N_stats = 0;
         global.stats = NULL;
@@ -232,7 +256,7 @@ void read_statisticsfile_data(bool first_call)
         global.graph.show_x = false;
         global.graph.show_y = false;
         global.graph.show_z = false;
-        return;
+        can_read = false;
     }
 
     global.statfile = ImFileOpen(global.statfilename, "r");
@@ -244,10 +268,12 @@ void read_statisticsfile_data(bool first_call)
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
         if (global.length < len) {
-            global.length = len + 1;
+            printf("belep\n");
+            global.length = len;
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
-        strcat(global.statfilename, " - Cannot find/open statistics file");
+        len = strlen(global.statfilename);
+        snprintf(&global.statfilename[len], global.length - len, " - Cannot find/open statistics file");
 
         global.N_stats = 0;
         global.stats = NULL;
@@ -255,34 +281,41 @@ void read_statisticsfile_data(bool first_call)
         global.graph.show_x = false;
         global.graph.show_y = false;
         global.graph.show_z = false;
-        return;
+        can_read = false;
     }
 
-    printf("Read stat file %s\n", global.statfilename);
-    global.N_stats = 0;
-    reserved = 100;
-    global.stats = (struct stat_struct *) malloc(reserved * sizeof(struct stat_struct));
-    while(!feof(global.statfile))
+    if (can_read)
     {
-        if (reserved <= global.N_stats)
+        printf("Read stat file %s\n", global.statfilename);
+        global.N_stats = 0;
+        reserved = 100;
+        global.stats = (struct stat_struct *) malloc(reserved * sizeof(struct stat_struct));
+        fscanf(global.statfile, "%s", charholder);
+        fscanf(global.statfile, "%s", charholder);
+        fscanf(global.statfile, "%s", charholder);
+        fscanf(global.statfile, "%s", charholder);
+        while(!feof(global.statfile))
         {
-            reserved += 50;
-            global.stats = (struct stat_struct*) realloc(global.stats, reserved * sizeof(struct stat_struct));
+            if (reserved <= global.N_stats)
+            {
+                reserved += 50;
+                global.stats = (struct stat_struct*) realloc(global.stats, reserved * sizeof(struct stat_struct));
+            }
+
+            fscanf(global.statfile, "%d", &global.stats[global.N_stats].time);
+            fscanf(global.statfile, "%f", &global.stats[global.N_stats].x);
+            fscanf(global.statfile, "%f", &global.stats[global.N_stats].y);
+            fscanf(global.statfile, "%f", &global.stats[global.N_stats].z);
+            fscanf(global.statfile, "%f", &dummy);
+            fscanf(global.statfile, "%f", &dummy);
+
+            global.N_stats ++;
         }
 
-        fscanf(global.statfile, "%d", &global.stats[global.N_stats].time);
-        fscanf(global.statfile, "%f", &global.stats[global.N_stats].x);
-        fscanf(global.statfile, "%f", &global.stats[global.N_stats].y);
-        fscanf(global.statfile, "%f", &global.stats[global.N_stats].z);
-        fscanf(global.statfile, "%f", &dummy);
-        fscanf(global.statfile, "%f", &dummy);
-
-        global.N_stats ++;
+        // there will be a row with zeros because the end of file. Hence decreese the valueable number of raws.
+        global.N_stats --;
+        fclose(global.statfile);
     }
-
-    // there will be a row with zeros because the end of file. Hence decreese the valueable number of raws.
-    global.N_stats --;
-    fclose(global.statfile);
 
     if (first_call)
     {

@@ -177,10 +177,11 @@ void initMovie(bool show_video_window)
                 transformDistance(&r);
                 c = global.objects[global.current_frame][i].color;
                 if (c < 0 || c > 9) c = 0;
-                const ImU32 col32 = ImColor(colors[c]);
+                ImU32 col32 = ImColor(colors[c]);
                 if (global.objects[global.current_frame][i].R == global.particle_r) 
                 {
                     if (global.movie.show_particles) {
+                        if (global.movie.monocrome_particles) col32 = ImColor(global.movie.particle_color);
                         draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
                         if (global.movie.trajectories_on)
                         {
@@ -207,6 +208,7 @@ void initMovie(bool show_video_window)
                 }
                 else 
                     if (global.movie.show_pinningsites) {
+                        if (global.movie.monocrome_pinningsites) col32 = ImColor(global.movie.pinningsite_color);
                         if (global.movie.show_just_center_pinningsites)
                             draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
                         else
@@ -673,38 +675,46 @@ void initSettingsWindow(bool *show)
         Text("Pinningsites");
         if (global.N_pinningsites == 0) pushDisable();
         Checkbox("Show pinningsites", &global.movie.show_pinningsites);
+        if (!global.movie.show_pinningsites) pushDisable();
         Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
         if (global.movie.show_grid_lines) {
             ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
             DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
         }
         Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
+        Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
+        if (global.movie.monocrome_pinningsites)
+            ColorEdit3("Pinningsite color", (float*)&global.movie.pinningsite_color);
         Separator();
+        if (!global.movie.show_pinningsites) popDisable();
         if (global.N_pinningsites == 0) popDisable();
 
         Text("Particles");
         if (global.N_particles == 0) pushDisable();
         Checkbox("Show particles", &global.movie.show_particles);
-        if (global.movie.show_particles) {
-            Checkbox("Toggle trajectory", &global.movie.trajectories_on);
-            if (global.movie.trajectories_on)
-            {
-                float spacing = GetStyle().ItemInnerSpacing.x;
-                PushButtonRepeat(true);
-                if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
-                SameLine(0.0f, spacing);
-                if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
-                PopButtonRepeat();
-                SameLine();
-                Text("%d", global.movie.particles_tracked);
+        if (!global.movie.show_particles) pushDisable();
+        Checkbox("Toggle trajectory", &global.movie.trajectories_on);
+        if (global.movie.trajectories_on)
+        {
+            float spacing = GetStyle().ItemInnerSpacing.x;
+            PushButtonRepeat(true);
+            if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
+            SameLine(0.0f, spacing);
+            if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
+            PopButtonRepeat();
+            SameLine();
+            Text("%d", global.movie.particles_tracked);
 
-                ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
-                SameLine(); 
-                ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
-                DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
-                ShowHelpMarker("Click and drag to change the value");
-            }
+            ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
+            SameLine(); 
+            ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
+            DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
+            ShowHelpMarker("Click and drag to change the value");
         }
+        Checkbox("Monocrome particles", &global.movie.monocrome_particles);
+        if (global.movie.monocrome_particles)
+            ColorEdit3("Particle color", (float*)&global.movie.particle_color);
+        if (!global.movie.show_particles) popDisable();
         Separator();
         if (global.N_particles == 0) popDisable();
 
