@@ -302,7 +302,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     // place thicks on vertical axis
     range = y_lims.y - (y_lims.x  < 0 ? y_lims.x : 0.0f);
     y_step = range / 4 / 4;
-    axis = *size_y / 4 / 4;
+    axis = (y0 - *poz_y) / 4 / 4;
     for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < y_lims.y; y_value += y_step, tick_poz -= axis, j++) {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
         if (j % 4 == 0 || y_value + y_step >= y_lims.y) {
@@ -371,22 +371,32 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     *origins_y_pozition = (unsigned int)y0 - *poz_y;
 }
 
+bool showAtLeastOneStatData()
+{
+    bool show = false;
+    for (size_t j = 0; j < global.number_of_columns; j++)
+        show |= global.graph.show[j];
+    return show;
+}
+
 void initGraphWindow(bool *show)
 {
     unsigned int size_x, size_y;
     unsigned int poz_x, poz_y;
     unsigned int i, y0;
-    int j;
+    int time_index;
     unsigned int t1, t2, t_max, t_min, t_frame, t0, tn;
-    float x1, y1, z1;
-    float x2, y2, z2;
-    float x_max, y_max, z_max, max;
-    float x_min, y_min, z_min, min;
-    ImU32 xc, yc, zc;
+    float *data1;
+    float *data2;
+    float *data_max, max;
+    float *data_min, min;
     ImDrawList *draw_list;
 
     poz_x = global.window.margin;
     poz_y = global.window.margin + global.video.height + global.window.margin;
+
+    data1 = (float *) malloc(sizeof(float) * global.number_of_columns);
+    data2 = (float *) malloc(sizeof(float) * global.number_of_columns);
     
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
@@ -406,165 +416,138 @@ void initGraphWindow(bool *show)
                 size_y -= 16;
                 size_x -= 60;
 
-                maxStats(&t_max, &x_max, &y_max, &z_max);
-                minStats(&t_min, &x_min, &y_min, &z_min);
+                data_max = (float *) malloc(sizeof(float) * global.number_of_columns);
+                data_min = (float *) malloc(sizeof(float) * global.number_of_columns);
+
+                maxStats(&t_max, data_max);
+                minStats(&t_min, data_min);
 
                 min = HUGE_VAL_F32;
-                if (global.graph.show_x && min > x_min) min = x_min;
-                if (global.graph.show_y && min > y_min) min = y_min;
-                if ((global.graph.show_z && min > z_min) || min == HUGE_VAL_F32) min = z_min;
+                for (size_t j = 0; j < global.number_of_columns - 1; j++)
+                    if (global.graph.show[j] && min > data_min[j]) min = data_min[j];
+                if ((global.graph.show[global.number_of_columns - 1] && min > data_min[global.number_of_columns - 1]) || min == HUGE_VAL_F32) min = data_min[global.number_of_columns - 1];
 
                 max = (-1) * HUGE_VAL_F32;
-                if (global.graph.show_x && max < x_max) max = x_max;
-                if (global.graph.show_y && max < y_max) max = y_max;
-                if ((global.graph.show_z && max < z_max) || max == (-1) * HUGE_VAL_F32) max = z_max;
+                for (size_t j = 0; j < global.number_of_columns - 1; j++)
+                    if (global.graph.show[j] && max < data_max[j]) max = data_max[j];
+                if ((global.graph.show[global.number_of_columns - 1] && max < data_max[global.number_of_columns - 1]) || max == (-1) * HUGE_VAL_F32) max = data_max[global.number_of_columns - 1];
                 
+                free(data_max);
+                free(data_min);
+
                 drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
 
                 max = (min < 0 ? max - min : max);
 
-                xc = ImColor(colors[6]);
-                yc = ImColor(colors[7]);
-                zc = ImColor(colors[8]);
-
-                x2 = global.stats[0].x;
-                y2 = global.stats[0].y;
-                z2 = global.stats[0].z;
+                memcpy(data2, global.stats[0].data, sizeof(float) * global.number_of_columns);
                 t2 = global.stats[0].time;
 
                 generalTransformCoordinates(&t2, t_max, size_x, poz_x);
-                generalTransformCoordinates(&x2, max, size_y, poz_y, true);
-                generalTransformCoordinates(&y2, max, size_y, poz_y, true);
-                generalTransformCoordinates(&z2, max, size_y, poz_y, true);
-
-                // it has to shift the curves with the distance of negative values (size_y - y0)
-                x2 -= size_y - y0;
-                y2 -= size_y - y0;
-                z2 -= size_y - y0;
+                for (size_t j = 0; j < global.number_of_columns; j++)
+                {
+                    generalTransformCoordinates(&data2[j], max, size_y, poz_y, true);
+                    // it has to shift the curves with the distance of negative values (size_y - y0)
+                    data2[j] -= size_y - y0;
+                }
 
                 t0 = t2;
                 t_frame = global.current_frame * 100;
                 generalTransformCoordinates(&t_frame, t_max, size_x, poz_x);
-                j = -1;
+                time_index = -1;
                 for (i = 1; i < global.N_stats; i++)
                 {
-                    x1 = x2;
-                    y1 = y2;
-                    z1 = z2;
+                    memcpy(data1, data2, sizeof(float) * global.number_of_columns);
                     tn = t1 = t2;
 
-                    x2 = global.stats[i].x;
-                    y2 = global.stats[i].y;
-                    z2 = global.stats[i].z;
+                    memcpy(data2, global.stats[i].data, sizeof(float) * global.number_of_columns);
                     t2 = global.stats[i].time;
 
                     generalTransformCoordinates(&t2, t_max, size_x, poz_x);
-                    generalTransformCoordinates(&x2, max, size_y, poz_y, true);
-                    generalTransformCoordinates(&y2, max, size_y, poz_y, true);
-                    generalTransformCoordinates(&z2, max, size_y, poz_y, true);
+                    for (size_t j = 0; j < global.number_of_columns; j++)
+                    {
+                        generalTransformCoordinates(&data2[j], max, size_y, poz_y, true);
+                        // it has to shift the curves with the distance of negative values (size_y - y0)
+                        data2[j] -= size_y - y0;
+                        if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(colors[6 + j]), 0.5);
+                    }
 
-                    x2 -= size_y - y0;
-                    y2 -= size_y - y0;
-                    z2 -= size_y - y0;
-
-                    if (global.graph.show_x) draw_list->AddLine(ImVec2(t1, (int) x1), ImVec2(t2, (int) x2), xc, 0.5);
-                    if (global.graph.show_y) draw_list->AddLine(ImVec2(t1, (int) y1), ImVec2(t2, (int) y2), yc, 0.5);
-                    if (global.graph.show_z) draw_list->AddLine(ImVec2(t1, (int) z1), ImVec2(t2, (int) z2), zc, 0.5);
-
-                    if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
+                    if (showAtLeastOneStatData())
                         if (t_frame > t1 && t_frame <= t2)
                         {
-                            j = i;  // t_frame value is between (i - 1) and i
+                            time_index = i;  // t_frame value is between (i - 1) and i
                             draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                         }
                 }
-                if (global.graph.show_x || global.graph.show_y || global.graph.show_z)
-                    if (j == -1)
+
+                free(data1);
+                free(data2);
+
+                if (showAtLeastOneStatData())
+                    if (time_index == -1)
                     {
                         if (t_frame <= t0)
                         {
-                            j = 0;
+                            time_index = 0;
                             t_frame += 2;
                             draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                         }
 
                         if (t_frame > tn)
                         {
-                            j = global.N_stats - 1;
+                            time_index = global.N_stats - 1;
                             t_frame -= 2;
                             draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                         }
                     }
             }
         EndChild();
-        if (global.stats != NULL) calculateCoordinatesOnGraph(j);
+        if (global.stats != NULL) calculateCoordinatesOnGraph(time_index);
     End();
 }
 
 void calculateCoordinatesOnGraph(int i)
 {
-    float x1, y1, z1, x2, y2, z2;
-    float x_value, y_value, z_value;
+    float *data1, *data2;
+    float *values;
     int t1, t2, t_frame;
-    char *x_text, *y_text, *z_text;
+    char *text;
+
+    data1 = (float *) malloc(sizeof(float) * global.number_of_columns);
+    data2 = (float *) malloc(sizeof(float) * global.number_of_columns);
+    values = (float *) malloc(sizeof(float) * global.number_of_columns);
 
     t_frame = global.current_frame * 100;
-    x2 = global.stats[i].x;
-    y2 = global.stats[i].y;
-    z2 = global.stats[i].z;
+    memcpy(data2, global.stats[i].data, sizeof(float) * global.number_of_columns);
     t2 = global.stats[i].time;
 
     if (i != 0)
     {
-        x1 = global.stats[i - 1].x;
-        y1 = global.stats[i - 1].y;
-        z1 = global.stats[i - 1].z;
+        memcpy(data1, global.stats[i].data, sizeof(float) * global.number_of_columns);
         t1 = global.stats[i - 1].time;
     } else {
-        x1 = x2;
-        y1 = y2;
-        z1 = z2;
+        memcpy(data1, data2, sizeof(float) * global.number_of_columns);
         t1 = t2;
     }
     
     if (t1 == t2 || t1 == t_frame) 
-    {
-        x_value = x1;
-        y_value = y1;
-        z_value = z1;
-    } else {
-        x_value = ((t_frame - t1) * (x2 - x1)) / (t2 - t1) + x1;
-        y_value = ((t_frame - t1) * (y2 - y1)) / (t2 - t1) + y1;
-        z_value = ((t_frame - t1) * (z2 - z1)) / (t2 - t1) + z1;
-    }
+        memcpy(values, data1, sizeof(float) * global.number_of_columns);
+    else
+        for (size_t j = 0; j < global.number_of_columns; j++)
+            values[j] = ((t_frame - t1) * (data2[j] - data1[j])) / (t2 - t1) + data1[j];
 
-    if (global.graph.show_x)
-    {
-        x_text = (char*) malloc(100);
-        snprintf(x_text, 100, "x = %2.8f\t", x_value);
-        TextColored(colors[6], "%s", x_text);
-        SameLine();
-        free(x_text);
-    }
+    for (size_t j = 0; j < global.number_of_columns; j++)
+        if (global.graph.show[j])
+        {
+            text = (char*) malloc(100);
+            snprintf(text, 100, "%s = %2.8f\t", global.stat_names[j], values[j]);
+            TextColored(colors[6 + j], "%s", text);
+            SameLine();
+            free(text);
+        }
 
-    if (global.graph.show_y)
-    {
-        y_text = (char*) malloc(100);
-        snprintf(y_text, 100, "y = %2.8f\t", y_value);
-        TextColored(colors[7], "%s", y_text);
-        SameLine();
-        free(y_text);
-    }
-
-    if (global.graph.show_z)
-    {
-        z_text = (char*) malloc(100);
-        snprintf(z_text, 100, "z = %f2.8\t", z_value);
-        TextColored(colors[8], "%s", z_text);
-        SameLine();
-        free(z_text);
-    }
-
+    free(values);
+    free(data2);
+    free(data1);
 }
 
 void initSettingsMenuBar()
@@ -636,14 +619,14 @@ void initSettingsMenuBar()
             {
                 strncpy(global.statfilename, dlg.getChosenPath(), length);
                 global.statfilename[length] = '\0';
-                read_statisticsfile_data();
+                readStatisticsfileData();
                 open_stats = false;
                 global.settings.open = -1;
             } else if (global.settings.open == 0)
             {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
                 global.moviefilename[length] = '\0';
-                read_moviefile_data();
+                readMoviefileData();
                 open_movie = false;
                 global.settings.open = -1;
             }
@@ -661,84 +644,83 @@ void initSettingsWindow(bool *show)
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_MenuBar);
 
-    initSettingsMenuBar();
+        initSettingsMenuBar();
 
-    if (CollapsingHeader("Help"))
-    {
-        BulletText("Double-click on title bar to collapse window.");
-        BulletText("CTRL+Click on a slider to input value as text.");
-    }
-
-    if (global.objects == NULL) pushDisable();
-    if (CollapsingHeader("Movie"))
-    {
-        Text("Pinningsites");
-        if (global.N_pinningsites == 0) pushDisable();
-        Checkbox("Show pinningsites", &global.movie.show_pinningsites);
-        if (!global.movie.show_pinningsites) pushDisable();
-        Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
-        if (global.movie.show_grid_lines) {
-            ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
-            DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
-        }
-        Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
-        Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
-        if (global.movie.monocrome_pinningsites)
-            ColorEdit3("Pinningsite color", (float*)&global.movie.pinningsite_color);
-        Separator();
-        if (!global.movie.show_pinningsites) popDisable();
-        if (global.N_pinningsites == 0) popDisable();
-
-        Text("Particles");
-        if (global.N_particles == 0) pushDisable();
-        Checkbox("Show particles", &global.movie.show_particles);
-        if (!global.movie.show_particles) pushDisable();
-        Checkbox("Toggle trajectory", &global.movie.trajectories_on);
-        if (global.movie.trajectories_on)
+        if (CollapsingHeader("Help"))
         {
-            float spacing = GetStyle().ItemInnerSpacing.x;
-            PushButtonRepeat(true);
-            if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
-            SameLine(0.0f, spacing);
-            if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
-            PopButtonRepeat();
-            SameLine();
-            Text("%d", global.movie.particles_tracked);
-
-            ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
-            SameLine(); 
-            ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
-            DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
-            ShowHelpMarker("Click and drag to change the value");
+            BulletText("Double-click on title bar to collapse window.");
+            BulletText("CTRL+Click on a slider to input value as text.");
         }
-        Checkbox("Monocrome particles", &global.movie.monocrome_particles);
-        if (global.movie.monocrome_particles)
-            ColorEdit3("Particle color", (float*)&global.movie.particle_color);
-        if (!global.movie.show_particles) popDisable();
-        Separator();
-        if (global.N_particles == 0) popDisable();
 
-        if (TreeNode("Zoom"))
+        if (global.objects == NULL) pushDisable();
+        if (CollapsingHeader("Movie"))
         {
-            TreePop();
+            Text("Pinningsites");
+            if (global.N_pinningsites == 0) pushDisable();
+            Checkbox("Show pinningsites", &global.movie.show_pinningsites);
+            if (!global.movie.show_pinningsites) pushDisable();
+            Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
+            if (global.movie.show_grid_lines) {
+                ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
+                DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
+            }
+            Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
+            Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
+            if (global.movie.monocrome_pinningsites)
+                ColorEdit3("Pinningsite color", (float*)&global.movie.pinningsite_color);
             Separator();
-        }
-    }
-    if (global.objects == NULL) popDisable();
+            if (!global.movie.show_pinningsites) popDisable();
+            if (global.N_pinningsites == 0) popDisable();
 
-    if (global.stats == NULL) pushDisable();
-    if (CollapsingHeader("Graph"))
-    {
-        if (TreeNode("Data shown"))
-        {
-            Checkbox("X", &global.graph.show_x);
-            Checkbox("Y", &global.graph.show_y);
-            Checkbox("Z", &global.graph.show_z);
-            TreePop();
+            Text("Particles");
+            if (global.N_particles == 0) pushDisable();
+            Checkbox("Show particles", &global.movie.show_particles);
+            if (!global.movie.show_particles) pushDisable();
+            Checkbox("Toggle trajectory", &global.movie.trajectories_on);
+            if (global.movie.trajectories_on)
+            {
+                float spacing = GetStyle().ItemInnerSpacing.x;
+                PushButtonRepeat(true);
+                if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
+                SameLine(0.0f, spacing);
+                if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
+                PopButtonRepeat();
+                SameLine();
+                Text("%d", global.movie.particles_tracked);
+
+                ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
+                SameLine(); 
+                ShowHelpMarker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
+                DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
+                ShowHelpMarker("Click and drag to change the value");
+            }
+            Checkbox("Monocrome particles", &global.movie.monocrome_particles);
+            if (global.movie.monocrome_particles)
+                ColorEdit3("Particle color", (float*)&global.movie.particle_color);
+            if (!global.movie.show_particles) popDisable();
             Separator();
+            if (global.N_particles == 0) popDisable();
+
+            if (TreeNode("Zoom"))
+            {
+                TreePop();
+                Separator();
+            }
         }
-    }
-    if (global.stats == NULL) popDisable();
+        if (global.objects == NULL) popDisable();
+
+        if (global.stats == NULL) pushDisable();
+        if (CollapsingHeader("Graph"))
+        {
+            if (TreeNode("Data shown"))
+            {
+                for (size_t j = 0; j < global.number_of_columns; j++)
+                    Checkbox(global.stat_names[j], &global.graph.show[j]);
+                TreePop();
+                Separator();
+            }
+        }
+        if (global.stats == NULL) popDisable();
     
     End();
 }
@@ -786,43 +768,47 @@ void cleanup()
     glfwTerminate();
 }
 
-void maxStats(unsigned int *t_max, float *x_max, float *y_max, float *z_max)
+void maxStats(unsigned int *t_max, float *data_max)
 {
-    unsigned int i;
+    unsigned int i, j;
 
     if (global.stats != NULL) 
     {
         *t_max = global.stats[0].time;
-        *x_max = global.stats[0].x;
-        *y_max = global.stats[0].y;
-        *z_max = global.stats[0].z;
+        for (j = 0; j < global.number_of_columns; j++) data_max[j] = global.stats[0].data[j];
+
         for (i = 1; i < global.N_stats; i++)
         {
             if (global.stats[i].time > *t_max) *t_max = global.stats[i].time;
-            if (global.stats[i].x > *x_max) *x_max = global.stats[i].x;
-            if (global.stats[i].y > *y_max) *y_max = global.stats[i].y;
-            if (global.stats[i].z > *z_max) *z_max = global.stats[i].z;
+            for (j = 0; j < global.number_of_columns; j++)
+                if (global.stats[i].data[j] > data_max[j]) data_max[j] = global.stats[i].data[j];
         }
+    } else {
+        COLOR_WARNING;
+        printf("WARNING (%s: line %d)\n\tNo statistics data found!\n", strrchr(__FILE__, '/') + 1, __LINE__);
+        COLOR_DEFAULT;
     }
 }
 
-void minStats(unsigned int *t_min, float *x_min, float *y_min, float *z_min)
+void minStats(unsigned int *t_min, float *data_min)
 {
-    unsigned int i;
+    unsigned int i, j;
 
     if (global.stats != NULL)
     {
         *t_min = global.stats[0].time;
-        *x_min = global.stats[0].x;
-        *y_min = global.stats[0].y;
-        *z_min = global.stats[0].z;
+        for (j = 0; j < global.number_of_columns; j++) data_min[j] = global.stats[0].data[j];
+
         for (i = 1; i < global.N_stats; i++)
         {
             if (global.stats[i].time < *t_min) *t_min = global.stats[i].time;
-            if (global.stats[i].x < *x_min) *x_min = global.stats[i].x;
-            if (global.stats[i].y < *y_min) *y_min = global.stats[i].y;
-            if (global.stats[i].z < *z_min) *z_min = global.stats[i].z;
+            for (j = 0; j < global.number_of_columns; j++)
+                if (global.stats[i].data[j] < data_min[j]) data_min[j] = global.stats[i].data[j];
         }
+    } else {
+        COLOR_WARNING;
+        printf("WARNING (%s: line %d)\n\tNo statistics data found!\n", strrchr(__FILE__, '/') + 1, __LINE__);
+        COLOR_DEFAULT;
     }
 }
 
@@ -859,7 +845,9 @@ void readImage(GLuint *texture, const char *filename)
     sf::Image img_data;
     if (!img_data.loadFromFile(filename))
     {
-        printf("Could not load '%s'.", filename);
+        COLOR_ERROR;
+        printf("ERROR (%s: line %d)\n\tCould not load '%s'.\n", strrchr(__FILE__, '/') + 1, __LINE__, filename);
+        COLOR_DEFAULT;
     }
     glGenTextures(1, texture);
     glBindTexture(GL_TEXTURE_2D, *texture);

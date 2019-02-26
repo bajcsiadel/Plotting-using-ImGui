@@ -12,9 +12,9 @@
 
 int main(int, char**)
 {
-    initialize_global_data();
+    initializeGlobalData();
 
-    read_moviefile_data();
+    readMoviefileData();
     
     // write_frame_data_to_file();
     

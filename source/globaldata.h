@@ -25,7 +25,7 @@ struct object_struct
 
 struct stat_struct {
     unsigned int time;
-    float x, y, z;
+    float *data;
 };
 
 struct window_struct
@@ -93,7 +93,7 @@ struct graph_window
 
     char **column_names;
 
-    bool show_x, show_y, show_z;
+    bool *show;
 };
 
 struct settings_window
@@ -156,22 +156,26 @@ struct global_struct
     struct movie_window movie;
     struct graph_window graph;
     struct settings_window settings;
+
+    size_t stat_name_length;
+    char **stat_names;
+    size_t number_of_columns;
     struct stat_struct *stats;
 };
 
 extern struct global_struct global;
 
-char* remove_extension(const char*);
-char* get_extension(const char*);
+char* removeExtension(const char*);
+char* getExtension(const char*);
 char* substr(const char*, int, int);
-void replace_last(char*, const char*, const char*);
-void initialize_global_data(void);
+void replaceLast(char*, const char*, const char*);
+void initializeGlobalData(void);
 
 void freeArrays();
 
-void read_moviefile_data(bool = true);
-void read_statisticsfile_data(bool = true);
+void readMoviefileData(bool = true);
+void readStatisticsfileData(bool = true);
 
-void write_frame_data_to_file();
+void writeFrameDataToFile();
 
 #endif /* globaldata_h */

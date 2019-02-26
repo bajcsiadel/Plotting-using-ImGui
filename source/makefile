@@ -37,10 +37,11 @@ else
 
 		CXXFLAGS += -I/usr/local/include `pkg-config --cflags glfw3`
 	endif
+
 	GREEN = "\033[0;32m"
 	DEFAULT = "\033[0m"
 endif
-CXXFLAGS += -Wall -Wformat -Wunused-variable
+CXXFLAGS += -Wall -Wformat -Wunused-variable -std=c++11
 CFLAGS = $(CXXFLAGS)
 
 $(OUT_DIR)%.o: $(OUT_DIR)%.cpp

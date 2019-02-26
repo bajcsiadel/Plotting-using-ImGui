@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 // http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
 #ifdef WINDOWS
@@ -26,17 +27,17 @@
 struct global_struct global;
 
 
-void get_current_working_dir(char *current_working_dir) {
+void getCurrentWorkingDir(char *current_working_dir) {
     char buff[FILENAME_MAX];
     GetCurrentDir(buff, FILENAME_MAX);
     memcpy(current_working_dir, buff, strlen(buff));
 }
 
-void get_relative_path_to_project_root(char *path, size_t path_size) {
+void getRelativePathToProjectRoot(char *path, size_t path_size) {
     char *current_working_dir, *plot;
 
     current_working_dir = (char *) malloc(255);
-    get_current_working_dir(current_working_dir);
+    getCurrentWorkingDir(current_working_dir);
     plot = strstr(current_working_dir, "Plotting-using-ImGui");
     strncpy(path, "", 1);
     char *buff, *const end = path + path_size;
@@ -56,7 +57,7 @@ const char *stats_dir = "stats";
 const char *movie_extension = ".mvi";
 const char *stat_extension = ".txt";
 
-void initialize_global_data()
+void initializeGlobalData()
 {
 
     global.Windowsize_x = 1280;
@@ -88,10 +89,6 @@ void initialize_global_data()
     global.movie.grid_line_width = 0.5;
     global.movie.show_grid_lines = false;
 
-    global.graph.show_x = true;
-    global.graph.show_y = true;
-    global.graph.show_z = true;
-
     global.movie.monocrome_particles = false;
     global.movie.particle_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
 
@@ -100,7 +97,7 @@ void initialize_global_data()
 
     global.path_length = 255;
     global.path = (char *) malloc(global.path_length);
-    get_relative_path_to_project_root(global.path, global.path_length);
+    getRelativePathToProjectRoot(global.path, global.path_length);
 
     // this is the max length of a  location
     global.video.location_length = strlen(global.path) + 21;
@@ -130,7 +127,7 @@ void initialize_global_data()
     strncat(global.video.next_img_location, "img/next.png", 12);
 }
 
-void read_moviefile_data(bool first_call)
+void readMoviefileData(bool first_call)
 {
     unsigned int reserved, i;
     int intholder;
@@ -143,19 +140,19 @@ void read_moviefile_data(bool first_call)
         free(global.objects);
     }
 
-    if (strcmp(get_extension(global.moviefilename), movie_extension) != 0)
+    if (strcmp(getExtension(global.moviefilename), movie_extension) != 0)
     {
         COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, get_extension(global.moviefilename));
+        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, getExtension(global.moviefilename));
         COLOR_DEFAULT;
 
-        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
+        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, getExtension(global.moviefilename));
         if (global.length < len) {
             global.length = len;
             global.moviefilename = (char *) realloc(global.moviefilename, global.length);
         }
         len = strlen(global.moviefilename);
-        snprintf(&global.moviefilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", movie_extension, get_extension(global.moviefilename));
+        snprintf(&global.moviefilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", movie_extension, getExtension(global.moviefilename));
 
         global.N_frames = 0;
         global.N_objects = 0;
@@ -205,7 +202,9 @@ void read_moviefile_data(bool first_call)
     {
         //pre-scan the file to find out how many frames/partciles we have
         //this could be modified to be capable of finding the frames that are complete
+        COLOR_NOTE;
         printf("Read movie file %s\n", global.moviefilename);
+        COLOR_DEFAULT;
         global.N_frames = 0;
         global.N_objects = 0;
         reserved = 100;
@@ -274,10 +273,10 @@ void read_moviefile_data(bool first_call)
     if (first_call)
     {
         size_t len;
-        filename = remove_extension(global.moviefilename);
+        filename = removeExtension(global.moviefilename);
         if (global.statfilename == NULL)
             global.statfilename = (char *) malloc(global.length);
-        replace_last(filename, movies_dir, stats_dir);
+        replaceLast(filename, movies_dir, stats_dir);
         len = snprintf(NULL, 0, "%s.mvi", filename);
         if (global.length < len)
         {
@@ -285,42 +284,45 @@ void read_moviefile_data(bool first_call)
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
         snprintf(global.statfilename, global.length, "%s.txt", filename);
-        read_statisticsfile_data(false);
+        readStatisticsfileData(false);
         free(filename);
     }
 }
 
-void read_statisticsfile_data(bool first_call)
+void readStatisticsfileData(bool first_call)
 {
     unsigned int reserved;
-    float dummy;
     char* filename;
     bool can_read = true;
-    char charholder[255];
+    size_t buff_size = 255;
+    char buff[buff_size];
 
     if (global.stats != NULL)
+    {
+        for (size_t i = 0; i < global.number_of_columns; i++) free(global.stat_names[i]);
+        free(global.stat_names);
+        for (size_t i = 0; i < global.N_stats; i++) free(global.stats[i].data);
         free(global.stats);
+    }
 
-    if (strcmp(get_extension(global.statfilename), stat_extension) != 0)
+    if (strcmp(getExtension(global.statfilename), stat_extension) != 0)
     {
         COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, get_extension(global.statfilename));
+        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, getExtension(global.statfilename));
         COLOR_DEFAULT;
         
-        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, get_extension(global.statfilename));
+        size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, getExtension(global.statfilename));
         if (global.length < len) {
             global.length = len;
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
         len = strlen(global.statfilename);
-        snprintf(&global.statfilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", stat_extension, get_extension(global.statfilename));
+        snprintf(&global.statfilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", stat_extension, getExtension(global.statfilename));
 
         global.N_stats = 0;
         global.stats = NULL;
 
-        global.graph.show_x = false;
-        global.graph.show_y = false;
-        global.graph.show_z = false;
+        global.graph.show = NULL;
         can_read = false;
     }
 
@@ -333,7 +335,6 @@ void read_statisticsfile_data(bool first_call)
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
         if (global.length < len) {
-            printf("belep\n");
             global.length = len;
             global.statfilename = (char *) realloc(global.statfilename, global.length);
         }
@@ -343,22 +344,57 @@ void read_statisticsfile_data(bool first_call)
         global.N_stats = 0;
         global.stats = NULL;
 
-        global.graph.show_x = false;
-        global.graph.show_y = false;
-        global.graph.show_z = false;
+        global.graph.show = NULL;
         can_read = false;
     }
 
     if (can_read)
     {
+        COLOR_NOTE;
         printf("Read stat file %s\n", global.statfilename);
+        COLOR_DEFAULT;
+
+        // getting headers from file
+        fgets(buff, buff_size, global.statfile);
+        // replacing endline character (\n) with null character
+        buff[strlen(buff) - 1] = '\0';
+
+        char *ptr;
+        reserved = 2;
+        global.number_of_columns = 0;
+        global.stat_names = (char **) malloc(sizeof(char *) * reserved);
+        while ((ptr = strrchr(buff, ' ')) != NULL)
+        {
+            *ptr = '\0';
+            ptr ++;
+            if (global.number_of_columns == reserved - 1)
+            {
+                reserved += 2;
+                global.stat_names = (char **) realloc(global.stat_names, reserved);
+            }
+            global.stat_names[global.number_of_columns] = (char *) malloc(50);
+            size_t len = strnlen(ptr, 50);
+            strncpy(global.stat_names[global.number_of_columns], ptr, len);
+            global.stat_names[global.number_of_columns][len] = '\0';
+
+            global.number_of_columns ++;
+        }
+
+        if (global.number_of_columns != reserved)
+            global.stat_names = (char **) realloc(global.stat_names, global.number_of_columns);
+
+        // flipping the list
+        for (size_t i = 0; i < global.number_of_columns / 2; i++)
+        {
+            char *holder = global.stat_names[i];
+            global.stat_names[i] = global.stat_names[global.number_of_columns - i - 1];
+            global.stat_names[global.number_of_columns - i - 1] = holder;
+        }
+
         global.N_stats = 0;
         reserved = 100;
         global.stats = (struct stat_struct *) malloc(reserved * sizeof(struct stat_struct));
-        fscanf(global.statfile, "%s", charholder);
-        fscanf(global.statfile, "%s", charholder);
-        fscanf(global.statfile, "%s", charholder);
-        fscanf(global.statfile, "%s", charholder);
+
         while(!feof(global.statfile))
         {
             if (reserved <= global.N_stats)
@@ -368,27 +404,40 @@ void read_statisticsfile_data(bool first_call)
             }
 
             fscanf(global.statfile, "%d", &global.stats[global.N_stats].time);
-            fscanf(global.statfile, "%f", &global.stats[global.N_stats].x);
-            fscanf(global.statfile, "%f", &global.stats[global.N_stats].y);
-            fscanf(global.statfile, "%f", &global.stats[global.N_stats].z);
-            fscanf(global.statfile, "%f", &dummy);
-            fscanf(global.statfile, "%f", &dummy);
+            fgets(buff, buff_size, global.statfile);
+            // there is an extra space at the end of the row
+            buff[strlen(buff) - 2] = '\0';
+            global.stats[global.N_stats].data = (float *) malloc(sizeof(float) * global.number_of_columns);
+            size_t n = global.number_of_columns - 1;
+            // there is a space at the begining of the row
+            while ((ptr = strrchr(buff, ' ')) != NULL)
+            {
+                *ptr = '\0';
+                ptr ++;
+                global.stats[global.N_stats].data[n] = strtof(ptr, NULL);
+                n --;
+            }
 
             global.N_stats ++;
         }
 
         // there will be a row with zeros because the end of file. Hence decreese the valueable number of raws.
         global.N_stats --;
+        printf("Statistics file has %d data\n", global.N_stats);
+
+        global.graph.show = (bool *) malloc(sizeof(bool) * global.number_of_columns);
+        for (size_t i = 0; i < global.number_of_columns; i++) global.graph.show[i] = true;
+
         fclose(global.statfile);
     }
 
     if (first_call)
     {
         size_t len;
-        filename = remove_extension(global.statfilename);
+        filename = removeExtension(global.statfilename);
         if (global.moviefilename == NULL)
             global.moviefilename = (char *) malloc(global.length);
-        replace_last(filename, stats_dir, movies_dir);
+        replaceLast(filename, stats_dir, movies_dir);
         len = snprintf(NULL, 0, "%s.mvi", filename);
         if (global.length < len)
         {
@@ -396,12 +445,12 @@ void read_statisticsfile_data(bool first_call)
             global.moviefilename = (char *) realloc(global.moviefilename, global.length);
         }
         snprintf(global.moviefilename, global.length, "%s.mvi", filename);
-        read_moviefile_data(false);
+        readMoviefileData(false);
         free(filename);
     }
 }
 
-void write_frame_data_to_file()
+void writeFrameDataToFile()
 {
     FILE *outfile[6];
     unsigned int i;
@@ -439,10 +488,20 @@ void freeArrays()
 {
     free(global.moviefilename);
     free(global.statfilename);
-    for (unsigned int i = 0; i < global.N_frames; i++)
-        free(global.objects[i]);
-    free(global.objects);
-    free(global.stats);
+    if (global.objects)
+    {
+        for (unsigned int i = 0; i < global.N_frames; i++)
+            free(global.objects[i]);
+        free(global.objects);
+    }
+
+    if (global.stats)
+    {
+        for (size_t i = 0; i < global.number_of_columns; i++) free(global.stat_names[i]);
+        free(global.stat_names);
+        for (size_t i = 0; i < global.N_stats; i++) free(global.stats[i].data);
+        free(global.stats);
+    }
 
     free(global.path);
 
@@ -454,9 +513,9 @@ void freeArrays()
     free(global.video.next_img_location);
 }
 
-char* remove_extension(const char* filename)
+char* removeExtension(const char* filename)
 {
-    if (get_extension(filename) != NULL)
+    if (getExtension(filename) != NULL)
     {
         const size_t len = strlen(filename);
         size_t i;
@@ -470,7 +529,7 @@ char* remove_extension(const char* filename)
     
 }
 
-char* get_extension(const char *filename)
+char* getExtension(const char *filename)
 {
     const size_t len = strlen(filename);
     int i;
@@ -492,7 +551,7 @@ char* substr(const char* from, int start, int count)
     return result;
 }
 
-void replace_last(char *in, const char *to_replace, const char *replace_with)
+void replaceLast(char *in, const char *to_replace, const char *replace_with)
 {
     int diff;
     size_t n, i, j;
