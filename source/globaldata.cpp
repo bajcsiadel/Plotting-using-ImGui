@@ -14,7 +14,41 @@
 #include <stdio.h>
 #include <string.h>
 
+// http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
+#ifdef WINDOWS
+    #include <direct.h>
+    #define GetCurrentDir _getcwd
+#else   // LINUX or MAC
+    #include <unistd.h>
+    #define GetCurrentDir getcwd
+#endif
+
 struct global_struct global;
+
+
+void get_current_working_dir(char *current_working_dir) {
+    char buff[FILENAME_MAX];
+    GetCurrentDir(buff, FILENAME_MAX);
+    memcpy(current_working_dir, buff, strlen(buff));
+}
+
+void get_relative_path_to_project_root(char *path, size_t path_size) {
+    char *current_working_dir, *plot;
+
+    current_working_dir = (char *) malloc(255);
+    get_current_working_dir(current_working_dir);
+    plot = strstr(current_working_dir, "Plotting-using-ImGui");
+    strncpy(path, "", 1);
+    char *buff, *const end = path + path_size;
+    buff = path;
+    
+    for (; *plot != '\0'; plot++) {
+        if (*plot == '\\' || *plot == '/') {
+            buff += snprintf(buff, end - buff, "../");
+        }
+    }
+    free(current_working_dir);
+}
 
 const char *movies_dir = "movies";
 const char *stats_dir = "stats";
@@ -63,6 +97,37 @@ void initialize_global_data()
 
     global.movie.monocrome_pinningsites = false;
     global.movie.pinningsite_color = ImVec4(1.0000, 0.0000, 0.0000, 1.0000);
+
+    global.path_length = 255;
+    global.path = (char *) malloc(global.path_length);
+    get_relative_path_to_project_root(global.path, global.path_length);
+
+    // this is the max length of a  location
+    global.video.location_length = strlen(global.path) + 21;
+
+    global.video.play_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.play_img_location, global.path);
+    strncat(global.video.play_img_location, "img/play.png", 12);
+
+    global.video.pause_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.pause_img_location, global.path);
+    strncat(global.video.pause_img_location, "img/pause.png", 13);
+
+    global.video.rewind_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.rewind_img_location, global.path);
+    strncat(global.video.rewind_img_location, "img/rewind.png", 14);
+
+    global.video.fastforward_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.fastforward_img_location, global.path);
+    strncat(global.video.fastforward_img_location, "img/fast-forward.png", 20);
+
+    global.video.back_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.back_img_location, global.path);
+    strncat(global.video.back_img_location, "img/back.png", 12);
+
+    global.video.next_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.next_img_location, global.path);
+    strncat(global.video.next_img_location, "img/next.png", 12);
 }
 
 void read_moviefile_data(bool first_call)
@@ -81,7 +146,7 @@ void read_moviefile_data(bool first_call)
     if (strcmp(get_extension(global.moviefilename), movie_extension) != 0)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 83)\n\tExtension do not match. Expected %s but got %s\n", movie_extension, get_extension(global.moviefilename));
+        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, get_extension(global.moviefilename));
         COLOR_DEFAULT;
 
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, get_extension(global.moviefilename));
@@ -111,7 +176,7 @@ void read_moviefile_data(bool first_call)
     if (global.moviefile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 112)\n\tCannot find/open movie file: %s\n", global.moviefilename);
+        printf("ERROR (%s: line %d)\n\tCannot find/open movie file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.moviefilename);
         COLOR_DEFAULT;
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
@@ -239,7 +304,7 @@ void read_statisticsfile_data(bool first_call)
     if (strcmp(get_extension(global.statfilename), stat_extension) != 0)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 202)\n\tExtension do not match. Expected %s but got %s\n", stat_extension, get_extension(global.statfilename));
+        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, get_extension(global.statfilename));
         COLOR_DEFAULT;
         
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, get_extension(global.statfilename));
@@ -263,7 +328,7 @@ void read_statisticsfile_data(bool first_call)
     if (global.statfile == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (globaldata.cpp: line 221)\n\tCannot find/open statistics file: %s\n", global.statfilename);
+        printf("ERROR (%s: line %d)\n\tCannot find/open statistics file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.statfilename);
         COLOR_DEFAULT;
 
         size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
@@ -378,6 +443,15 @@ void freeArrays()
         free(global.objects[i]);
     free(global.objects);
     free(global.stats);
+
+    free(global.path);
+
+    free(global.video.play_img_location);
+    free(global.video.pause_img_location);
+    free(global.video.rewind_img_location);
+    free(global.video.fastforward_img_location);
+    free(global.video.back_img_location);
+    free(global.video.next_img_location);
 }
 
 char* remove_extension(const char* filename)
@@ -429,7 +503,7 @@ void replace_last(char *in, const char *to_replace, const char *replace_with)
     if (ptr == NULL)
     {
         COLOR_WARNING;
-        printf("WARNING (globaldata.cpp: line 283)\n\tNo much found %s in %s\n", to_replace, in);
+        printf("WARNING (%s: line %d)\n\tNo much found %s in %s\n", strrchr(__FILE__, '/') + 1, __LINE__, to_replace, in);
         COLOR_DEFAULT;
         return;
     }

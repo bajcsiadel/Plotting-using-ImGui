@@ -56,7 +56,7 @@ int initWindow()
     if (global.window.window == NULL)
     {
         COLOR_ERROR;
-        printf("ERROR (drawing.cpp: line 58)\n\tCould not create window!\n");
+        printf("ERROR (%s: line %d)\n\tCould not create window!\n", strrchr(__FILE__, '/') + 1, __LINE__);
         COLOR_DEFAULT;
         return 0;
     }
@@ -226,53 +226,53 @@ void initVideoWindow(bool *show_video_window)
     Begin("Video", show_video_window,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
-    AddFileLocation(global.moviefilename);
-    initMovie(true);
-    
-    GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
-    // https://www.flaticon.com/packs/music
-    readImage(&play_image, "../img/play.png");
-    readImage(&pause_image, "../img/pause.png");
-    readImage(&back_image, "../img/back.png");
-    readImage(&next_image, "../img/next.png");
-    readImage(&rewind_image, "../img/rewind.png");
-    readImage(&fastforward_image, "../img/fast-forward.png");
-    
-    PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
-    PushStyleColor(ImGuiCol_ButtonActive, global.window.clear_color);
+        AddFileLocation(global.moviefilename);
+        initMovie(true);
+        
+        GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
+        // https://www.flaticon.com/packs/music
+        readImage(&play_image, global.video.play_img_location);
+        readImage(&pause_image, global.video.pause_img_location);
+        readImage(&back_image, global.video.back_img_location);
+        readImage(&next_image, global.video.next_img_location);
+        readImage(&rewind_image, global.video.rewind_img_location);
+        readImage(&fastforward_image, global.video.fastforward_img_location);
+        
+        PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
+        PushStyleColor(ImGuiCol_ButtonActive, global.window.clear_color);
 
-    Separator();
-    ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
-    if (IsItemClicked())
-        global.current_frame = 0;
-    SameLine();
+        Separator();
+        ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (IsItemClicked())
+            global.current_frame = 0;
+        SameLine();
 
-    ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
-    if (IsItemClicked())
-        global.video.step = (global.video.step != 1 ? global.video.step / 2 : global.video.step);
-    SameLine();
+        ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (IsItemClicked())
+            global.video.step = (global.video.step != 1 ? global.video.step / 2 : global.video.step);
+        SameLine();
 
-    if (global.video.play) 
-        ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
-    else
-        ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
-    if (IsItemClicked())
-        global.video.play = !global.video.play;
-    SameLine();
+        if (global.video.play) 
+            ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
+        else
+            ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (IsItemClicked())
+            global.video.play = !global.video.play;
+        SameLine();
 
-    ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
-    if (IsItemClicked())
-        global.video.step = (global.video.step < 128 ? global.video.step * 2 : global.video.step);
-    SameLine();
+        ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (IsItemClicked())
+            global.video.step = (global.video.step < 128 ? global.video.step * 2 : global.video.step);
+        SameLine();
 
-    ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
-    if (IsItemClicked())
-        global.current_frame = global.N_frames - 1;
-    SameLine();
-    PopStyleColor(2);
+        ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (IsItemClicked())
+            global.current_frame = global.N_frames - 1;
+        SameLine();
+        PopStyleColor(2);
 
-    PushItemWidth(-50);
-    SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
+        PushItemWidth(-50);
+        SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
     End();
     if (global.video.play)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
@@ -895,7 +895,8 @@ void AddFileLocation(const char *filename)
     if (ptr == NULL) {
         size_t len = strlen(filename);
         ptr = (char *) malloc(len + 1);
-        memcpy(ptr, filename, len);
+        // copying len + 1 characters to get null pointer at the end as well
+        memcpy(ptr, filename, len + 1);
     }
     PushTextWrapPos(0.0f);
     TextUnformatted(ptr);

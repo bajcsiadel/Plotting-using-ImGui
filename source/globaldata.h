@@ -46,6 +46,14 @@ struct video_window
 
     unsigned int button_size;
     bool play;
+
+    size_t location_length;
+    char *play_img_location;
+    char *pause_img_location;
+    char *rewind_img_location;
+    char *fastforward_img_location;
+    char *back_img_location;
+    char *next_img_location;
 };
 
 struct movie_window
@@ -102,6 +110,9 @@ struct settings_window
 
 struct global_struct
 {
+    char *path;
+    size_t path_length;
+
     //OpenGl window size
     unsigned int Windowsize_x;           //window size in pixels x direction
     unsigned int Windowsize_y;           //window size in pixels y direction
