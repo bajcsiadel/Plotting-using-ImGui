@@ -126,7 +126,8 @@ void drawGrid(ImDrawList *draw_list)
 
     color = ImColor(global.movie.grid_color);
 
-    for (i = 1; i < N_rows; i++) {
+    for (i = 1; i < N_rows; i++)
+    {
         float y0 = i * dy, y1 = i * dy;
         float x0 = 0.0, x1 = global.SX;
 
@@ -136,7 +137,8 @@ void drawGrid(ImDrawList *draw_list)
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
 
-    for (i = 1; i < N_columns; i++) {
+    for (i = 1; i < N_columns; i++)
+    {
         float x0 = i * dx, x1 = i * dx;
         float y0 = 0.0, y1 = global.SY;
 
@@ -180,7 +182,8 @@ void initMovie(bool show_video_window)
                 ImU32 col32 = ImColor(colors[c]);
                 if (global.objects[global.current_frame][i].R == global.particle_r) 
                 {
-                    if (global.movie.show_particles) {
+                    if (global.movie.show_particles)
+                    {
                         if (global.movie.monocrome_particles) col32 = ImColor(global.movie.particle_color);
                         draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
                         if (global.movie.trajectories_on)
@@ -207,7 +210,8 @@ void initMovie(bool show_video_window)
                     }
                 }
                 else 
-                    if (global.movie.show_pinningsites) {
+                    if (global.movie.show_pinningsites)
+                    {
                         if (global.movie.monocrome_pinningsites) col32 = ImColor(global.movie.pinningsite_color);
                         if (global.movie.show_just_center_pinningsites)
                             draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
@@ -288,8 +292,8 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     unsigned int j, t_value, t_step, axis, tick_poz;
     float range, y_value, y_step;
     ImU32 black, gray;
-    const unsigned int a = 7;
-    const unsigned int x = *poz_x,
+    const unsigned int a = 7; // length of the arrow
+    const unsigned int x = *poz_x + (y_lims.y > 99.999 ? 5 : 0),
         y = *poz_y,
         y2 = *poz_y + *size_y;
     const unsigned int x0 = *poz_x - 50,
@@ -302,10 +306,13 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     // place thicks on vertical axis
     range = y_lims.y - (y_lims.x  < 0 ? y_lims.x : 0.0f);
     y_step = range / 4 / 4;
-    axis = (y0 - *poz_y) / 4 / 4;
-    for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < y_lims.y; y_value += y_step, tick_poz -= axis, j++) {
+    *size_y = y0 - *poz_y - a / 2;
+    axis = *size_y / 4 / 4;
+    for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value <= (y_lims.y + 0.5); y_value += y_step, tick_poz -= axis, j++)
+    {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
-        if (j % 4 == 0 || y_value + y_step >= y_lims.y) {
+        if (j % 4 == 0 || y_value + y_step > (y_lims.y + 0.5))
+        {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%.3f", y_value);
 
@@ -318,9 +325,12 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
             draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
         }
     }
-    for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++) {
+
+    for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++)
+    {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
-        if (j % 4 == 0 || y_value - y_step < y_lims.x) {
+        if (j % 4 == 0 || y_value - y_step < y_lims.x)
+        {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%.3f", y_value);
 
@@ -343,9 +353,11 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     // ticks on horisontal axis
     t_step = x_max / 5 / 4;
     axis = (x01 - sqrt(3) * a / 2 - x0 - 50) / 20;
-    for (t_value = t_step, tick_poz = *poz_x + axis, j = 1; t_value <= x_max; t_value += t_step, tick_poz += axis, j++) {
+    for (t_value = t_step, tick_poz = *poz_x + axis, j = 1; t_value <= x_max; t_value += t_step, tick_poz += axis, j++)
+    {
         draw_list->AddLine(ImVec2(tick_poz, 0), ImVec2(tick_poz, 2 * y2), gray);
-        if (j % 5 == 0) {
+        if (j % 5 == 0)
+        {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%d", t_value);
 
@@ -660,7 +672,8 @@ void initSettingsWindow(bool *show)
             Checkbox("Show pinningsites", &global.movie.show_pinningsites);
             if (!global.movie.show_pinningsites) pushDisable();
             Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
-            if (global.movie.show_grid_lines) {
+            if (global.movie.show_grid_lines)
+            {
                 ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
                 DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
             }
@@ -880,7 +893,8 @@ void AddFileLocation(const char *filename)
 {
     char *ptr;
     ptr = realpath(filename, NULL);
-    if (ptr == NULL) {
+    if (ptr == NULL)
+    {
         size_t len = strlen(filename);
         ptr = (char *) malloc(len + 1);
         // copying len + 1 characters to get null pointer at the end as well
