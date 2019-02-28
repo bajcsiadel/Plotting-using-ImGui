@@ -3,7 +3,5 @@
 *.o
 build
 **/*.ini
-img/*.svg
 imgui/*.yml
 source/*.vscode
-img/*.png
