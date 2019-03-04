@@ -5,8 +5,10 @@
 
 void AddFileLocation(const char*);
 void calculateCoordinatesOnGraph(int);
-int calculateLength(float);
+int calculateNumberLength(float);
 void cleanup();
+void drawGrid(ImDrawList*);
+size_t estimatedLabelRowNumber();
 void generalTransformCoordinates(unsigned int*, unsigned int, unsigned int, int, bool = false);
 void generalTransformCoordinates(float*, float, int, int, bool = false);
 void initGraphWindow(bool*);

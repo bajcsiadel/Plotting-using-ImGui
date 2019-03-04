@@ -12,8 +12,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
-#include <string>
+#include <time.h>
+#include <cstring>
 
 // http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
 #ifdef WINDOWS
@@ -306,6 +306,7 @@ void readStatisticsfileData(bool first_call)
         for (size_t i = 0; i < global.N_stats; i++) free(global.stats[i].data);
         free(global.stats);
         free(global.graph.show);
+        free(global.graph.line_colors);
     }
 
     if (((extension = getExtension(global.statfilename)) == NULL) || strcmp(extension, stat_extension) != 0)
@@ -326,6 +327,8 @@ void readStatisticsfileData(bool first_call)
         global.stats = NULL;
 
         global.graph.show = NULL;
+        global.graph.line_colors = NULL;
+        global.stat_names = NULL;
         can_read = false;
         free(extension);
     }
@@ -349,6 +352,8 @@ void readStatisticsfileData(bool first_call)
             global.stats = NULL;
 
             global.graph.show = NULL;
+            global.graph.line_colors = NULL;
+            global.stat_names = NULL;
             can_read = false;
         }
     }
@@ -392,6 +397,12 @@ void readStatisticsfileData(bool first_call)
             global.stat_names[i] = global.stat_names[global.number_of_columns - i - 1];
             global.stat_names[global.number_of_columns - i - 1] = holder;
         }
+
+        // initially generating random color for the lines on graph
+        srand(time(NULL));
+        global.graph.line_colors = (ImVec4 *) malloc(global.number_of_columns * sizeof(ImVec4));
+        for (size_t i = 0; i < global.number_of_columns; i++)
+            global.graph.line_colors[i] = ImVec4((float) rand() / RAND_MAX, (float) rand() / RAND_MAX, (float) rand() / RAND_MAX, 1.0000);
 
         global.N_stats = 0;
         reserved = 100;

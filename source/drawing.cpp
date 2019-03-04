@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <string>
 #include <GLFW/glfw3.h>
 #include <cmath>
 
@@ -89,8 +90,8 @@ int initWindow()
     global.video.step = 1;
 
     global.movie.width = global.video.width - 2 * global.window.margin;
-    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - 20; // filename height
-        
+    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
+
     global.movie.proportion_x = ((double) global.movie.width - 20) / global.SX;
     global.movie.proportion_y = ((double) global.movie.height - 20) / global.SY;
 
@@ -110,44 +111,6 @@ int initWindow()
     global.settings.poz_y = global.window.margin;
 
     return 1;
-}
-
-void drawGrid(ImDrawList *draw_list)
-{
-    unsigned int N_rows, N_columns;
-    unsigned int i;
-    float dx, dy;
-    ImU32 color;
-
-    N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
-    N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
-
-    dx = global.SX / N_columns;
-    dy = global.SY / N_rows;
-
-    color = ImColor(global.movie.grid_color);
-
-    for (i = 1; i < N_rows; i++)
-    {
-        float y0 = i * dy, y1 = i * dy;
-        float x0 = 0.0, x1 = global.SX;
-
-        transformMovieCoordinates(&x0, &y0);
-        transformMovieCoordinates(&x1, &y1);
-
-        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
-    }
-
-    for (i = 1; i < N_columns; i++)
-    {
-        float x0 = i * dx, x1 = i * dx;
-        float y0 = 0.0, y1 = global.SY;
-
-        transformMovieCoordinates(&x0, &y0);
-        transformMovieCoordinates(&x1, &y1);
-
-        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
-    }
 }
 
 void initMovie(bool show_video_window)
@@ -283,7 +246,45 @@ void initVideoWindow(bool *show_video_window)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
-int calculateLength(float x)
+void drawGrid(ImDrawList *draw_list)
+{
+    unsigned int N_rows, N_columns;
+    unsigned int i;
+    float dx, dy;
+    ImU32 color;
+
+    N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
+    N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
+
+    dx = global.SX / N_columns;
+    dy = global.SY / N_rows;
+
+    color = ImColor(global.movie.grid_color);
+
+    for (i = 1; i < N_rows; i++)
+    {
+        float y0 = i * dy, y1 = i * dy;
+        float x0 = 0.0, x1 = global.SX;
+
+        transformMovieCoordinates(&x0, &y0);
+        transformMovieCoordinates(&x1, &y1);
+
+        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+    }
+
+    for (i = 1; i < N_columns; i++)
+    {
+        float x0 = i * dx, x1 = i * dx;
+        float y0 = 0.0, y1 = global.SY;
+
+        transformMovieCoordinates(&x0, &y0);
+        transformMovieCoordinates(&x1, &y1);
+
+        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+    }
+}
+
+int calculateNumberLength(float x)
 {
     int n, xi;
     n = 0;
@@ -305,7 +306,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     unsigned int j, t_value, t_step, axis, tick_poz;
     float range, y_value, y_step;
     ImU32 black, gray;
-    const unsigned int a = 7, n = calculateLength(y_lims.y) - 1; // length of the arrow
+    const unsigned int a = 7, n = calculateNumberLength(y_lims.y) - 1; // length of the arrow
     const unsigned int x = *poz_x + n * 5,
         y = *poz_y,
         y2 = *poz_y + *size_y;
@@ -320,7 +321,7 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     // place thicks on vertical axis
     range = y_lims.y - (y_lims.x  < 0 ? y_lims.x : 0.0f);
     y_step = range / 4 / 4;
-    *size_y = y0 - *poz_y - a / 2;
+    *size_y = y0 - *poz_y - sqrt(3) * a / 2;
     axis = *size_y / 4 / 4;
     // we go till max + max / 100 <- because the division to calculate y_step can couse small differences
     for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < (y_lims.y + y_lims.y / 100); y_value += y_step, tick_poz -= axis, j++)
@@ -406,6 +407,27 @@ bool showAtLeastOneStatData()
     return show;
 }
 
+size_t estimatedLabelRowNumber()
+{
+    size_t line, len;
+
+    if (!showAtLeastOneStatData()) return 0;
+
+    line = 1;
+    len = 0;
+    for (size_t j = 0; j < global.number_of_columns; j++)
+        if (global.graph.show[j])
+        {
+            len += 10 + strlen(global.stat_names[j]) + 13; // space between the words + length of label name + '=' chackter +  value for the label
+            if (len * 7.5 > global.graph.width)
+            {
+                len = 0;   
+                line ++;
+            }
+        }
+    return line;
+}
+
 void initGraphWindow(bool *show)
 {
     unsigned int size_x, size_y;
@@ -431,8 +453,8 @@ void initGraphWindow(bool *show)
         ImGuiWindowFlags_NoMove);
         AddFileLocation(global.statfilename);
         size_x = global.graph.width - 2 * global.window.margin;
-        size_y = global.graph.height - 8.2 * global.window.margin;
-        BeginChild("", ImVec2(size_x, size_y), true);
+        size_y = global.graph.height - 6.2 * global.window.margin - estimatedLabelRowNumber() * 13.5;
+        BeginChild("##diagram", ImVec2(size_x, size_y), true);
             draw_list = GetWindowDrawList();
             
             if (global.stats != NULL)
@@ -495,13 +517,13 @@ void initGraphWindow(bool *show)
                             generalTransformCoordinates(&data2[j], max, size_y, poz_y, true);
                             // it has to shift the curves with the distance of negative values (size_y - y0)
                             data2[j] -= size_y - y0;
-                            if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(colors[6 + j]), 0.5);
+                            if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(global.graph.line_colors[j]), 0.5);
                         }
 
                             if (t_frame > t1 && t_frame <= t2)
                             {
                                 time_index = i;  // t_frame value is between (i - 1) and i
-                                draw_list->AddLine(ImVec2(t_frame, poz_y), ImVec2(t_frame, poz_y + size_y), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                                draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + size_y + 10), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                             }
                     }
 
@@ -515,14 +537,14 @@ void initGraphWindow(bool *show)
                         {
                             time_index = 0;
                             t_frame += 2;
-                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                            draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + 10), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                         }
 
                         if (t_frame > tn)
                         {
                             time_index = global.N_stats - 1;
                             t_frame -= 2;
-                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                            draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + 10), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
                         }
                     }
             }
@@ -537,6 +559,7 @@ void calculateCoordinatesOnGraph(int i)
     float *values;
     int t1, t2, t_frame;
     char *text;
+    size_t len;
 
     data1 = (float *) malloc(global.number_of_columns * sizeof(float));
     data2 = (float *) malloc(global.number_of_columns * sizeof(float));
@@ -561,13 +584,19 @@ void calculateCoordinatesOnGraph(int i)
         for (size_t j = 0; j < global.number_of_columns; j++)
             values[j] = ((t_frame - t1) * (data2[j] - data1[j])) / (t2 - t1) + data1[j];
 
+    len = global.graph.width;
     for (size_t j = 0; j < global.number_of_columns; j++)
         if (global.graph.show[j])
         {
             text = (char*) malloc(100);
-            snprintf(text, 100, "%s = %2.8f\t", global.stat_names[j], values[j]);
-            TextColored(colors[6 + j], "%s", text);
-            SameLine();
+            len += snprintf(text, 100, "%s = %2.8f\t", global.stat_names[j], values[j]);
+            len += 10; // space between the words
+            if (len * 7.5 < global.graph.width)
+                SameLine();
+            else
+                len = 0;
+            TextColored(global.graph.line_colors[j], "%s", text);
+                        
             free(text);
         }
 
@@ -656,6 +685,7 @@ void initSettingsMenuBar()
                 open_movie = false;
                 global.settings.open = -1;
             }
+            global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
             global.current_frame = 0;
             global.video.play = true;
         }
@@ -723,7 +753,7 @@ void initSettingsWindow(bool *show)
             }
             Checkbox("Monocrome particles", &global.movie.monocrome_particles);
             if (global.movie.monocrome_particles)
-                ColorEdit3("Particle color", (float*)&global.movie.particle_color);
+                ColorEdit3("Particle color", (float *)&global.movie.particle_color);
             if (!global.movie.show_particles) popDisable();
             Separator();
             if (global.N_particles == 0) popDisable();
@@ -741,8 +771,17 @@ void initSettingsWindow(bool *show)
         {
             if (TreeNode("Data shown"))
             {
-                for (size_t j = 0; j < global.number_of_columns; j++)
+                for (size_t j = 0; j < global.number_of_columns; j++) 
+                {
                     Checkbox(global.stat_names[j], &global.graph.show[j]);
+                    if (global.graph.show[j])
+                    {
+                        char* str = (char *) malloc(global.number_of_columns + 4);
+                        snprintf(str, global.number_of_columns + 4, "##lc%zu", j);
+                        ColorEdit3(str, (float *)&global.graph.line_colors[j]);
+                        free(str);
+                    }
+                }
                 TreePop();
                 Separator();
             }
