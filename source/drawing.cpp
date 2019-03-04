@@ -38,6 +38,7 @@ const ImVec4 colors[] = {
     ImVec4(0.3019, 0.6862, 0.2901, 1.0000), // 6 - green
     ImVec4(0.8900, 0.6120 ,0.2160, 1.0000), // 7 - orange
     ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8 - almost red
+    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 9 - almost red
 };
 
 int setupGLFW()
@@ -282,6 +283,18 @@ void initVideoWindow(bool *show_video_window)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
+int calculateLength(float x)
+{
+    int n, xi;
+    n = 0;
+    do {
+        n++;
+        x /= 10;
+        xi = (int) x;
+    } while (xi != 0);
+    return n;
+}
+
 void drawDecartesCoordinateSystem(ImDrawList *draw_list, 
     unsigned int *poz_x, unsigned int *poz_y, 
     unsigned int *size_x, unsigned int *size_y, 
@@ -292,14 +305,15 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     unsigned int j, t_value, t_step, axis, tick_poz;
     float range, y_value, y_step;
     ImU32 black, gray;
-    const unsigned int a = 7; // length of the arrow
-    const unsigned int x = *poz_x + (y_lims.y > 99.999 ? 5 : 0),
+    const unsigned int a = 7, n = calculateLength(y_lims.y) - 1; // length of the arrow
+    const unsigned int x = *poz_x + n * 5,
         y = *poz_y,
         y2 = *poz_y + *size_y;
     const unsigned int x0 = *poz_x - 50,
         x01 = *poz_x + *size_x,
         y0 = (y_lims.x < 0 ? *poz_y + *size_y * y_lims.y / (y_lims.y - y_lims.x) : *poz_y + *size_y - 2 * a);
 
+    *size_x -= n * 5;
     gray    = ImColor(colors[2]);
     black   = ImColor(colors[3]);
 
@@ -308,10 +322,11 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
     y_step = range / 4 / 4;
     *size_y = y0 - *poz_y - a / 2;
     axis = *size_y / 4 / 4;
-    for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value <= (y_lims.y + 0.5); y_value += y_step, tick_poz -= axis, j++)
+    // we go till max + max / 100 <- because the division to calculate y_step can couse small differences
+    for (y_value = y_step, tick_poz = y0 - axis, j = 1; y_value < (y_lims.y + y_lims.y / 100); y_value += y_step, tick_poz -= axis, j++)
     {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
-        if (j % 4 == 0 || y_value + y_step > (y_lims.y + 0.5))
+        if (j % 4 == 0 || y_value + y_step >= (y_lims.y + 0.5))
         {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%.3f", y_value);
@@ -398,17 +413,16 @@ void initGraphWindow(bool *show)
     unsigned int i, y0;
     int time_index;
     unsigned int t1, t2, t_max, t_min, t_frame, t0, tn;
-    float *data1;
-    float *data2;
-    float *data_max, max;
-    float *data_min, min;
+    float *data1, *data2;
+    float *data_min, *data_max;
+    float min, max;
     ImDrawList *draw_list;
 
     poz_x = global.window.margin;
     poz_y = global.window.margin + global.video.height + global.window.margin;
 
-    data1 = (float *) malloc(sizeof(float) * global.number_of_columns);
-    data2 = (float *) malloc(sizeof(float) * global.number_of_columns);
+    data1 = (float *) malloc(global.number_of_columns * sizeof(float));
+    data2 = (float *) malloc(global.number_of_columns * sizeof(float));
     
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
@@ -427,13 +441,13 @@ void initGraphWindow(bool *show)
                 poz_y += 52;
                 size_y -= 16;
                 size_x -= 60;
-
-                data_max = (float *) malloc(sizeof(float) * global.number_of_columns);
-                data_min = (float *) malloc(sizeof(float) * global.number_of_columns);
+                
+                data_max = (float *) malloc(global.number_of_columns * sizeof(float));
+                data_min = (float *) malloc(global.number_of_columns * sizeof(float));
 
                 maxStats(&t_max, data_max);
                 minStats(&t_min, data_min);
-
+                
                 min = HUGE_VAL_F32;
                 for (size_t j = 0; j < global.number_of_columns - 1; j++)
                     if (global.graph.show[j] && min > data_min[j]) min = data_min[j];
@@ -448,10 +462,9 @@ void initGraphWindow(bool *show)
                 free(data_min);
 
                 drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
-
                 max = (min < 0 ? max - min : max);
 
-                memcpy(data2, global.stats[0].data, sizeof(float) * global.number_of_columns);
+                memcpy(data2, global.stats[0].data, global.number_of_columns * sizeof(float));
                 t2 = global.stats[0].time;
 
                 generalTransformCoordinates(&t2, t_max, size_x, poz_x);
@@ -466,30 +479,31 @@ void initGraphWindow(bool *show)
                 t_frame = global.current_frame * 100;
                 generalTransformCoordinates(&t_frame, t_max, size_x, poz_x);
                 time_index = -1;
-                for (i = 1; i < global.N_stats; i++)
-                {
-                    memcpy(data1, data2, sizeof(float) * global.number_of_columns);
-                    tn = t1 = t2;
 
-                    memcpy(data2, global.stats[i].data, sizeof(float) * global.number_of_columns);
-                    t2 = global.stats[i].time;
-
-                    generalTransformCoordinates(&t2, t_max, size_x, poz_x);
-                    for (size_t j = 0; j < global.number_of_columns; j++)
+                if (showAtLeastOneStatData())
+                    for (i = 1; i < global.N_stats; i++)
                     {
-                        generalTransformCoordinates(&data2[j], max, size_y, poz_y, true);
-                        // it has to shift the curves with the distance of negative values (size_y - y0)
-                        data2[j] -= size_y - y0;
-                        if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(colors[6 + j]), 0.5);
-                    }
+                        memcpy(data1, data2, global.number_of_columns * sizeof(float));
+                        tn = t1 = t2;
 
-                    if (showAtLeastOneStatData())
-                        if (t_frame > t1 && t_frame <= t2)
+                        memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(float));
+                        t2 = global.stats[i].time;
+
+                        generalTransformCoordinates(&t2, t_max, size_x, poz_x);
+                        for (size_t j = 0; j < global.number_of_columns; j++)
                         {
-                            time_index = i;  // t_frame value is between (i - 1) and i
-                            draw_list->AddLine(ImVec2(t_frame, 0), ImVec2(t_frame, poz_y + global.graph.height), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                            generalTransformCoordinates(&data2[j], max, size_y, poz_y, true);
+                            // it has to shift the curves with the distance of negative values (size_y - y0)
+                            data2[j] -= size_y - y0;
+                            if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(colors[6 + j]), 0.5);
                         }
-                }
+
+                            if (t_frame > t1 && t_frame <= t2)
+                            {
+                                time_index = i;  // t_frame value is between (i - 1) and i
+                                draw_list->AddLine(ImVec2(t_frame, poz_y), ImVec2(t_frame, poz_y + size_y), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                            }
+                    }
 
                 free(data1);
                 free(data2);
@@ -513,7 +527,7 @@ void initGraphWindow(bool *show)
                     }
             }
         EndChild();
-        if (global.stats != NULL) calculateCoordinatesOnGraph(time_index);
+        if (global.stats != NULL && time_index != -1) calculateCoordinatesOnGraph(time_index);
     End();
 }
 
@@ -524,25 +538,25 @@ void calculateCoordinatesOnGraph(int i)
     int t1, t2, t_frame;
     char *text;
 
-    data1 = (float *) malloc(sizeof(float) * global.number_of_columns);
-    data2 = (float *) malloc(sizeof(float) * global.number_of_columns);
-    values = (float *) malloc(sizeof(float) * global.number_of_columns);
+    data1 = (float *) malloc(global.number_of_columns * sizeof(float));
+    data2 = (float *) malloc(global.number_of_columns * sizeof(float));
+    values = (float *) malloc(global.number_of_columns * sizeof(float));
 
     t_frame = global.current_frame * 100;
-    memcpy(data2, global.stats[i].data, sizeof(float) * global.number_of_columns);
+    memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(float));
     t2 = global.stats[i].time;
 
     if (i != 0)
     {
-        memcpy(data1, global.stats[i].data, sizeof(float) * global.number_of_columns);
+        memcpy(data1, global.stats[i].data, global.number_of_columns * sizeof(float));
         t1 = global.stats[i - 1].time;
     } else {
-        memcpy(data1, data2, sizeof(float) * global.number_of_columns);
+        memcpy(data1, data2, global.number_of_columns * sizeof(float));
         t1 = t2;
     }
     
     if (t1 == t2 || t1 == t_frame) 
-        memcpy(values, data1, sizeof(float) * global.number_of_columns);
+        memcpy(values, data1, global.number_of_columns * sizeof(float));
     else
         for (size_t j = 0; j < global.number_of_columns; j++)
             values[j] = ((t_frame - t1) * (data2[j] - data1[j])) / (t2 - t1) + data1[j];

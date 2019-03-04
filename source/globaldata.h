@@ -94,6 +94,9 @@ struct graph_window
     char **column_names;
 
     bool *show;
+
+    unsigned int t_min, t_max;
+    float min, max; // min and max values on the y axis
 };
 
 struct settings_window

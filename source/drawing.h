@@ -5,6 +5,7 @@
 
 void AddFileLocation(const char*);
 void calculateCoordinatesOnGraph(int);
+int calculateLength(float);
 void cleanup();
 void generalTransformCoordinates(unsigned int*, unsigned int, unsigned int, int, bool = false);
 void generalTransformCoordinates(float*, float, int, int, bool = false);
