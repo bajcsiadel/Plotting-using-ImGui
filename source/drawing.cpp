@@ -342,10 +342,10 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
         }
     }
 
-    for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value >= y_lims.x; y_value -= y_step, tick_poz += axis, j++)
+    for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value > y_lims.x; y_value -= y_step, tick_poz += axis, j++)
     {
         draw_list->AddLine(ImVec2(x, tick_poz), ImVec2(x01 * 2, tick_poz), gray);
-        if (j % 4 == 0 || y_value - y_step < y_lims.x)
+        if (j % 4 == 0 || y_value - y_step <= y_lims.x)
         {
             char *number = new char[10];
             size_t len = snprintf(number, 9, "%.3f", y_value);
@@ -480,6 +480,8 @@ void initGraphWindow(bool *show)
                     if (global.graph.show[j] && max < data_max[j]) max = data_max[j];
                 if ((global.graph.show[global.number_of_columns - 1] && max < data_max[global.number_of_columns - 1]) || max == (-1) * HUGE_VAL_F32) max = data_max[global.number_of_columns - 1];
                 
+                if (min == max) max += 0.0125; 
+
                 free(data_max);
                 free(data_min);
 
@@ -769,8 +771,19 @@ void initSettingsWindow(bool *show)
         if (global.stats == NULL) pushDisable();
         if (CollapsingHeader("Graph"))
         {
+            if (Checkbox("Show all data", &global.graph.show_all))
+            {
+                if (global.graph.show_all)
+                    for (size_t j = 0; j < global.number_of_columns; j++)
+                        global.graph.show[j] = true;
+                else
+                    for (size_t j = 0; j < global.number_of_columns; j++)
+                        global.graph.show[j] = false;
+            }
+
             if (TreeNode("Data shown"))
             {
+                bool all = true;
                 for (size_t j = 0; j < global.number_of_columns; j++) 
                 {
                     Checkbox(global.stat_names[j], &global.graph.show[j]);
@@ -781,7 +794,11 @@ void initSettingsWindow(bool *show)
                         ColorEdit3(str, (float *)&global.graph.line_colors[j]);
                         free(str);
                     }
+                    else
+                        all = false;
                 }
+
+                global.graph.show_all = all;
                 TreePop();
                 Separator();
             }

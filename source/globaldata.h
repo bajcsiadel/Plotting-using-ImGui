@@ -93,6 +93,7 @@ struct graph_window
 
     char **column_names;
 
+    bool show_all;
     bool *show;
 
     unsigned int t_min, t_max;

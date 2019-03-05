@@ -76,8 +76,8 @@ void initializeGlobalData()
     
     global.length = 100;
     global.moviefilename = (char *) malloc(global.length);
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/79pinningforce_576particles.mvi", 66);
-    global.moviefilename[66] = '\0';
+    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/05pinningsitesR_20190304_15043.mvi", 69);
+    global.moviefilename[69] = '\0';
     
     global.N_frames = 0;
     global.current_frame = 0;
@@ -326,6 +326,7 @@ void readStatisticsfileData(bool first_call)
         global.N_stats = 0;
         global.stats = NULL;
 
+        global.graph.show_all = false;
         global.graph.show = NULL;
         global.graph.line_colors = NULL;
         global.stat_names = NULL;
@@ -351,6 +352,7 @@ void readStatisticsfileData(bool first_call)
             global.N_stats = 0;
             global.stats = NULL;
 
+            global.graph.show_all = false;
             global.graph.show = NULL;
             global.graph.line_colors = NULL;
             global.stat_names = NULL;
@@ -439,8 +441,9 @@ void readStatisticsfileData(bool first_call)
         printf("Statistics file has %d data\n", global.N_stats);
         printf("Statistics file contains %zu nr. of data columns\n", global.number_of_columns + 1);
 
+        global.graph.show_all = true;
         global.graph.show = (bool *) malloc(global.number_of_columns * sizeof(bool));
-        for (size_t i = 0; i < global.number_of_columns; i++) global.graph.show[i] = false;
+        for (size_t i = 0; i < global.number_of_columns; i++) global.graph.show[i] = true;
 
         fclose(global.statfile);
     }
