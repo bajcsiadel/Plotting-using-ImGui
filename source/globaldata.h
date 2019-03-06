@@ -137,12 +137,14 @@ struct global_struct
     
     char *moviefilename;
     FILE *moviefile;
+    char *moviefile_error;
     
     unsigned int N_frames;
     int current_frame;
     
     char *statfilename;
     FILE *statfile;
+    char *statfile_error;
 
     unsigned int length;
 

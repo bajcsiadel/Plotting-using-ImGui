@@ -29,4 +29,4 @@ void startMainLoop();
 void transformMovieCoordinates(float *x, float *y);
 void transformDistance(float *r);
 
-#endif
+#endif /* drawing_h */

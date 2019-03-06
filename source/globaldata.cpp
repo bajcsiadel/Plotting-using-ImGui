@@ -76,8 +76,11 @@ void initializeGlobalData()
     
     global.length = 100;
     global.moviefilename = (char *) malloc(global.length);
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/05pinningsitesR_20190304_15043.mvi", 69);
+    strncpy(global.moviefilename, "../../Time-Crystals/results/akarmi.mvi", 69);
     global.moviefilename[69] = '\0';
+
+    global.moviefile_error = (char *) malloc(global.length);
+    global.statfile_error  = (char *) malloc(global.length);
     
     global.N_frames = 0;
     global.current_frame = 0;
@@ -132,7 +135,7 @@ void readMoviefileData(bool first_call)
     unsigned int reserved, i;
     int intholder;
     float floatholder;
-    char* filename, *extension;
+    char *filename, *extension;
     bool can_read = true;
 
     if (global.objects != NULL) {
@@ -146,13 +149,13 @@ void readMoviefileData(bool first_call)
         printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, extension);
         COLOR_DEFAULT;
 
+        if (global.moviefile_error == NULL) global.moviefile_error = (char *) malloc(global.length);
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, extension);
         if (global.length < len) {
             global.length = len + 1;
-            global.moviefilename = (char *) realloc(global.moviefilename, global.length);
+            global.moviefile_error = (char *) realloc(global.moviefile_error, global.length);
         }
-        len = strlen(global.moviefilename);
-        snprintf(&global.moviefilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", movie_extension, extension);
+        snprintf(global.moviefile_error, global.length, "%s - Extension do not match. Expected %s but got %s", global.moviefilename,  movie_extension, extension);
 
         global.N_frames = 0;
         global.N_objects = 0;
@@ -177,13 +180,13 @@ void readMoviefileData(bool first_call)
             printf("ERROR (%s: line %d)\n\tCannot find/open movie file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.moviefilename);
             COLOR_DEFAULT;
 
+            if (global.moviefile_error == NULL) global.moviefile_error = (char *) malloc(global.length);
             size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
             if (global.length < len) {
                 global.length = len + 1;
-                global.moviefilename = (char *) realloc(global.moviefilename, global.length);
+                global.moviefile_error = (char *) realloc(global.moviefile_error, global.length);
             }
-            len = strlen(global.moviefilename);
-            snprintf(&global.moviefilename[len], global.length - len, " - Cannot find/open movie file");
+            snprintf(global.moviefile_error, global.length, "%s - Cannot find/open movie file", global.moviefilename);
 
             global.N_frames = 0;
             global.N_objects = 0;
@@ -207,6 +210,8 @@ void readMoviefileData(bool first_call)
         COLOR_NOTE;
         printf("Read movie file %s\n", global.moviefilename);
         COLOR_DEFAULT;
+
+        if (global.moviefile_error) free(global.moviefile_error);
         global.N_frames = 0;
         global.N_objects = 0;
         reserved = 100;
@@ -289,6 +294,8 @@ void readMoviefileData(bool first_call)
         readStatisticsfileData(false);
         free(filename);
     }
+
+    memcpy(global.moviefilename, global.moviefile_error, global.length);
 }
 
 void readStatisticsfileData(bool first_call)
@@ -315,13 +322,13 @@ void readStatisticsfileData(bool first_call)
         printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, extension);
         COLOR_DEFAULT;
         
+        if (global.statfile_error == NULL) global.statfile_error = (char *) malloc(global.length);
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, extension);
         if (global.length < len) {
             global.length = len + 1;
-            global.statfilename = (char *) realloc(global.statfilename, global.length);
+            global.statfile_error = (char *) realloc(global.statfile_error, global.length);
         }
-        len = strlen(global.statfilename);
-        snprintf(&global.statfilename[len], global.length - len, " - Extension do not match. Expected %s but got %s", stat_extension, extension);
+        snprintf(global.statfile_error, global.length, "%s - Extension do not match. Expected %s but got %s", global.statfilename, stat_extension, extension);
 
         global.N_stats = 0;
         global.stats = NULL;
@@ -341,13 +348,13 @@ void readStatisticsfileData(bool first_call)
             printf("ERROR (%s: line %d)\n\tCannot find/open statistics file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.statfilename);
             COLOR_DEFAULT;
 
+            if (global.statfile_error == NULL) global.statfile_error = (char *) malloc(global.length);
             size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
             if (global.length < len) {
                 global.length = len;
-                global.statfilename = (char *) realloc(global.statfilename, global.length);
+                global.statfile_error = (char *) realloc(global.statfile_error, global.length);
             }
-            len = strlen(global.statfilename);
-            snprintf(&global.statfilename[len], global.length - len, " - Cannot find/open statistics file");
+            snprintf(global.statfile_error, global.length, "%s - Cannot find/open statistics file", global.statfilename);
 
             global.N_stats = 0;
             global.stats = NULL;
@@ -365,6 +372,8 @@ void readStatisticsfileData(bool first_call)
         COLOR_NOTE;
         printf("Read stat file %s\n", global.statfilename);
         COLOR_DEFAULT;
+
+        if (global.statfile_error) free(global.statfile_error);
 
         // getting headers from file
         fgets(buff, buff_size, global.statfile);
@@ -465,6 +474,8 @@ void readStatisticsfileData(bool first_call)
         readMoviefileData(false);
         free(filename);
     }
+
+    memcpy(global.statfilename, global.statfile_error, global.length);
 }
 
 void writeFrameDataToFile()
@@ -503,6 +514,7 @@ void writeFrameDataToFile()
 
 void freeArrays()
 {
+    printf("freeArrays\n"); fflush(stdout);
     free(global.moviefilename);
     free(global.statfilename);
     if (global.objects)
@@ -528,6 +540,9 @@ void freeArrays()
     free(global.video.fastforward_img_location);
     free(global.video.back_img_location);
     free(global.video.next_img_location);
+
+    if (global.moviefile_error) free(global.moviefile_error);
+    if (global.statfile_error)  free(global.statfile_error);
 }
 
 char* removeExtension(const char* filename)

@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <string>
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw3.h> // GLuint
 #include <cmath>
 
 using namespace ImGui;
@@ -65,11 +65,13 @@ int initWindow()
 
     glfwMakeContextCurrent(global.window.window);
     glfwSwapInterval(1); // Enable vsync
+    // glfwSetCharCallback(global.window.window, ImGui_ImplGlfw_CharCallback);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     CreateContext();
     global.window.io = GetIO(); (void)global.window.io;
+    // global.window.io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(global.window.window, true);
