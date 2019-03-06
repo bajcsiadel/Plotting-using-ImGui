@@ -173,6 +173,7 @@ struct global_struct
 
 extern struct global_struct global;
 
+void reallocateFileNames(size_t);
 char* removeExtension(const char*);
 char* getExtension(const char*);
 char* substr(const char*, int, int);

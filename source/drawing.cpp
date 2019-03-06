@@ -123,12 +123,12 @@ void initMovie(bool show_video_window)
     ImDrawList *draw_list;
     ImVec2 poz;
 
-    BeginChild("Test", ImVec2(global.movie.width, global.movie.height), true);
+    BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
 
         float sy = global.SY;
         transformDistance(&sy);
         poz = GetWindowPos();
-        global.movie.poz_y = (global.movie.height - sy) / 2 + poz.y + 30;
+        global.movie.poz_y = (2*global.movie.height - sy) / 2 + poz.y + 30;
 
         draw_list = GetWindowDrawList();
         if (global.movie.show_grid_lines)
@@ -339,9 +339,9 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
             *poz_y = tick_poz;
 
             delete[] number;
-        } else {
-            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
         }
+        else
+            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
     }
 
     for (y_value = -y_step, tick_poz = y0 + axis, j = 1; y_value > y_lims.x; y_value -= y_step, tick_poz += axis, j++)
@@ -357,9 +357,9 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
             *size_y = tick_poz - *poz_y;
 
             delete[] number;
-        } else {
-            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
         }
+        else
+            draw_list->AddLine(ImVec2(x - 4, tick_poz), ImVec2(x + 4, tick_poz), black);
     }
 
     // vertical axis
@@ -384,9 +384,9 @@ void drawDecartesCoordinateSystem(ImDrawList *draw_list,
             *size_x = tick_poz - *poz_x;
 
             delete[] number;
-        } else {
-            draw_list->AddLine(ImVec2(tick_poz, y0 - 4), ImVec2(tick_poz, y0 + 4), black);
         }
+        else
+            draw_list->AddLine(ImVec2(tick_poz, y0 - 4), ImVec2(tick_poz, y0 + 4), black);
     }
 
     // horizontal axis
@@ -577,7 +577,9 @@ void calculateCoordinatesOnGraph(int i)
     {
         memcpy(data1, global.stats[i].data, global.number_of_columns * sizeof(float));
         t1 = global.stats[i - 1].time;
-    } else {
+    }
+    else
+    {
         memcpy(data1, data2, global.number_of_columns * sizeof(float));
         t1 = t2;
     }
@@ -681,7 +683,8 @@ void initSettingsMenuBar()
                 readStatisticsfileData();
                 open_stats = false;
                 global.settings.open = -1;
-            } else if (global.settings.open == 0)
+            }
+            else if (global.settings.open == 0)
             {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
                 global.moviefilename[length] = '\0';
@@ -868,7 +871,9 @@ void maxStats(unsigned int *t_max, float *data_max)
             for (j = 0; j < global.number_of_columns; j++)
                 if (global.stats[i].data[j] > data_max[j]) data_max[j] = global.stats[i].data[j];
         }
-    } else {
+    }
+    else
+    {
         COLOR_WARNING;
         printf("WARNING (%s: line %d)\n\tNo statistics data found!\n", strrchr(__FILE__, '/') + 1, __LINE__);
         COLOR_DEFAULT;
@@ -890,7 +895,9 @@ void minStats(unsigned int *t_min, float *data_min)
             for (j = 0; j < global.number_of_columns; j++)
                 if (global.stats[i].data[j] < data_min[j]) data_min[j] = global.stats[i].data[j];
         }
-    } else {
+    }
+    else
+    {
         COLOR_WARNING;
         printf("WARNING (%s: line %d)\n\tNo statistics data found!\n", strrchr(__FILE__, '/') + 1, __LINE__);
         COLOR_DEFAULT;
