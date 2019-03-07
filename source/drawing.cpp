@@ -70,8 +70,8 @@ int initWindow()
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     CreateContext();
-    global.window.io = GetIO(); (void)global.window.io;
-    // global.window.io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    ImGuiIO io = GetIO(); (void)io;
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(global.window.window, true);
@@ -82,7 +82,7 @@ int initWindow()
 
     global.SY = global.SX * (sqrt(3.0) / 2.0);
 
-    global.window.clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    global.window.background_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     global.window.margin = 10;
     global.video.button_size = 28;
 
@@ -126,11 +126,12 @@ void initMovie(bool show_video_window)
     BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
 
         float sy = global.SY;
-        transformDistance(&sy);
         poz = GetWindowPos();
+        transformDistance(&sy);
         global.movie.poz_y = (global.movie.height - sy) / 2 + poz.y + 30;
 
-        draw_list = GetWindowDrawList();
+        global.movie.draw_list = draw_list = GetWindowDrawList();
+
         if (global.movie.show_grid_lines)
             drawGrid(draw_list);
         n = 0;
@@ -209,7 +210,7 @@ void initVideoWindow(bool *show_video_window)
         readImage(&fastforward_image, global.video.fastforward_img_location);
         
         PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
-        PushStyleColor(ImGuiCol_ButtonActive, global.window.clear_color);
+        PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
 
         Separator();
         ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
@@ -826,15 +827,15 @@ void startMainLoop()
         NewFrame();
 
         initVideoWindow(NULL);
-        initGraphWindow(NULL);
-        initSettingsWindow(NULL);
+        // initGraphWindow(NULL);
+        // initSettingsWindow(NULL);
 
         // Rendering
         Render();
         int display_w, display_h;
         glfwGetFramebufferSize(global.window.window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(global.window.clear_color.x, global.window.clear_color.y, global.window.clear_color.z, global.window.clear_color.w);
+        glClearColor(global.window.background_color.x, global.window.background_color.y, global.window.background_color.z, global.window.background_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         
         ImGui_ImplOpenGL2_RenderDrawData(GetDrawData());

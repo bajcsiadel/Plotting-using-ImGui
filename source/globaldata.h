@@ -23,16 +23,16 @@ struct object_struct
     float R;
 };
 
-struct stat_struct {
+struct stat_struct
+{
     unsigned int time;
     float *data;
 };
 
 struct window_struct
 {
-    GLFWwindow* window;
-    ImGuiIO io;
-    ImVec4 clear_color;
+    GLFWwindow *window;
+    ImVec4 background_color;
 
     int margin;
 };
@@ -65,7 +65,7 @@ struct movie_window
     unsigned int poz_y;
 
     float proportion_x, proportion_y;
-    
+
     bool trajectories_on;
     unsigned int particles_tracked;
     ImVec4 traj_color;
@@ -84,6 +84,8 @@ struct movie_window
 
     bool monocrome_pinningsites;
     ImVec4 pinningsite_color;
+
+    ImDrawList *draw_list;
 };
 
 struct graph_window
@@ -120,28 +122,28 @@ struct global_struct
     size_t path_length;
 
     //OpenGl window size
-    unsigned int Windowsize_x;           //window size in pixels x direction
-    unsigned int Windowsize_y;           //window size in pixels y direction
-    
+    unsigned int Windowsize_x; //window size in pixels x direction
+    unsigned int Windowsize_y; //window size in pixels y direction
+
     //System Size
     double SX;
     double SY;
-    
+
     //Sytem Zoom in
-    float zoom_x0,zoom_y0;         //lower left corner
-    float zoom_x1,zoom_y1;         //upper right corner
-    float zoom_deltax,zoom_deltay; //size of the zoomed area
-    
+    float zoom_x0, zoom_y0;         //lower left corner
+    float zoom_x1, zoom_y1;         //upper right corner
+    float zoom_deltax, zoom_deltay; //size of the zoomed area
+
     float radius_particle;
     float radius_vertex;
-    
+
     char *moviefilename;
     FILE *moviefile;
     char *moviefile_error;
-    
+
     unsigned int N_frames;
     int current_frame;
-    
+
     char *statfilename;
     FILE *statfile;
     char *statfile_error;
@@ -153,10 +155,10 @@ struct global_struct
     unsigned int N_objects;
     unsigned int N_particles;
     unsigned int N_pinningsites;
-    
+
     double pinningsite_r;
     double particle_r;
-    
+
     //all objects in the movie file
     struct object_struct **objects;
     struct window_struct window;
@@ -174,11 +176,11 @@ struct global_struct
 extern struct global_struct global;
 
 void reallocateFileNames(size_t);
-char* removeExtension(const char*);
-char* getExtension(const char*);
-char* substr(const char*, int, int);
-void replaceLast(char*, const char*, const char*);
-void initializeGlobalData(char*);
+char *removeExtension(const char *);
+char *getExtension(const char *);
+char *substr(const char *, int, int);
+void replaceLast(char *, const char *, const char *);
+void initializeGlobalData(char *);
 
 void freeArrays();
 
