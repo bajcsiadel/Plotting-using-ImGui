@@ -9,10 +9,15 @@
 #include "globaldata.h"
 #include "drawing.h"
 
+#include <stdlib.h>
 
-int main(int, char**)
+int main(int argc, char** argv)
 {
-    initializeGlobalData();
+    char *filename = (char *) malloc(255);
+    if (argc == 2) memcpy(filename, argv[1], strlen(argv[1]));
+    else filename[0] = '\0';    // zero length string
+    initializeGlobalData(filename);
+    free(filename);
 
     readMoviefileData();
     

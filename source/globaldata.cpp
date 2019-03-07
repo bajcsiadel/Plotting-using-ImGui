@@ -57,7 +57,7 @@ const char *stats_dir = "stats";
 const char *movie_extension = ".mvi";
 const char *stat_extension = ".txt";
 
-void initializeGlobalData()
+void initializeGlobalData(char *filename)
 {
 
     global.Windowsize_x = 1280;
@@ -74,11 +74,16 @@ void initializeGlobalData()
     global.zoom_y1 = global.SY;
     global.zoom_deltay = global.zoom_y1 - global.zoom_y0;
     
-    global.length = 100;
+    size_t len = strlen(filename);
+    char default_filename[] = "../../Time-Crystals/results/movies/05pinningsitesR.mvi";
+    global.length = (len != 0 ? len : strlen(default_filename)) + 1;
     global.moviefilename = (char *) malloc(global.length);
-    strncpy(global.moviefilename, "../../Time-Crystals/results/movies/05pinningsitesR.mvi", 69);
-    global.moviefilename[69] = '\0';
-    
+    if (len == 0) {
+        snprintf(filename, global.length, "%s", default_filename);
+    }
+    strncpy(global.moviefilename, filename, global.length);
+    global.moviefilename[global.length] = '\0';
+
     global.N_frames = 0;
     global.current_frame = 0;
     

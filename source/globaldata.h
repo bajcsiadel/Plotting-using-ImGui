@@ -178,7 +178,7 @@ char* removeExtension(const char*);
 char* getExtension(const char*);
 char* substr(const char*, int, int);
 void replaceLast(char*, const char*, const char*);
-void initializeGlobalData(void);
+void initializeGlobalData(char*);
 
 void freeArrays();
 

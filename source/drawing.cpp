@@ -128,7 +128,7 @@ void initMovie(bool show_video_window)
         float sy = global.SY;
         transformDistance(&sy);
         poz = GetWindowPos();
-        global.movie.poz_y = (2*global.movie.height - sy) / 2 + poz.y + 30;
+        global.movie.poz_y = (global.movie.height - sy) / 2 + poz.y + 30;
 
         draw_list = GetWindowDrawList();
         if (global.movie.show_grid_lines)
