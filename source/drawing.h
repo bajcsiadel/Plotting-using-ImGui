@@ -22,11 +22,14 @@ void minStats(unsigned int*, float*);
 void popDisable();
 void pushDisable();
 void readImage(GLuint*, const char*);
+void resetZoom();
 int setupGLFW();
+void setVideoButtonsLocation();
 bool showAtLeastOneStatData();
 void ShowHelpMarker(const char*);
 void startMainLoop();
 void transformMovieCoordinates(float *x, float *y);
 void transformDistance(float *r);
+void zoom();
 
 #endif /* drawing_h */

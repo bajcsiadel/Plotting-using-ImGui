@@ -65,15 +65,11 @@ void initializeGlobalData(char *filename)
 
     global.SX = 72.0;
     global.SY = 72.0;
-    
-    global.zoom_x0 = 0.0;
-    global.zoom_x1 = global.SX;
-    global.zoom_deltax = global.zoom_x1 - global.zoom_x0;
-    
-    global.zoom_y0 = 0.0;
-    global.zoom_y1 = global.SY;
-    global.zoom_deltay = global.zoom_y1 - global.zoom_y0;
-    
+
+    // not good because is specific for triangular lattice
+    global.SY = global.SX * (sqrt(3.0) / 2.0);
+
+    // initializing filename
     size_t len = strlen(filename);
     char default_filename[] = "../../Time-Crystals/results/movies/05pinningsitesR.mvi";
     global.length = (len != 0 ? len : strlen(default_filename)) + 1;
@@ -84,52 +80,9 @@ void initializeGlobalData(char *filename)
     strncpy(global.moviefilename, filename, global.length);
     global.moviefilename[global.length] = '\0';
 
+    // movie data
     global.N_frames = 0;
     global.current_frame = 0;
-    
-    global.movie.trajectories_on = false;
-    global.movie.particles_tracked = 5;
-    global.movie.traj_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
-    global.movie.traj_width = 0.5;
-    global.movie.grid_line_width = 0.5;
-    global.movie.show_grid_lines = false;
-
-    global.movie.monocrome_particles = true;
-    global.movie.particle_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
-
-    global.movie.monocrome_pinningsites = false;
-    global.movie.pinningsite_color = ImVec4(1.0000, 0.0000, 0.0000, 1.0000);
-
-    global.path_length = 255;
-    global.path = (char *) malloc(global.path_length);
-    getRelativePathToProjectRoot(global.path, global.path_length);
-
-    // this is the max length of a  location
-    global.video.location_length = strlen(global.path) + 21;
-
-    global.video.play_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.play_img_location, global.path);
-    strncat(global.video.play_img_location, "img/play.png", 12);
-
-    global.video.pause_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.pause_img_location, global.path);
-    strncat(global.video.pause_img_location, "img/pause.png", 13);
-
-    global.video.rewind_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.rewind_img_location, global.path);
-    strncat(global.video.rewind_img_location, "img/rewind.png", 14);
-
-    global.video.fastforward_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.fastforward_img_location, global.path);
-    strncat(global.video.fastforward_img_location, "img/fast-forward.png", 20);
-
-    global.video.back_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.back_img_location, global.path);
-    strncat(global.video.back_img_location, "img/back.png", 12);
-
-    global.video.next_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.next_img_location, global.path);
-    strncat(global.video.next_img_location, "img/next.png", 12);
 }
 
 void reallocateFileNames(size_t len)

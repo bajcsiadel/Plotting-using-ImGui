@@ -80,10 +80,11 @@ int initWindow()
     // Setup Style
     StyleColorsLight();
 
-    global.SY = global.SX * (sqrt(3.0) / 2.0);
-
+    // window data
     global.window.background_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     global.window.margin = 10;
+
+    // video window data
     global.video.button_size = 28;
 
     global.video.height = global.video.width
@@ -91,21 +92,61 @@ int initWindow()
     global.video.play = true;
     global.video.step = 1;
 
+    setVideoButtonsLocation();
+
+    // movie window data
     global.movie.width = global.video.width - 2 * global.window.margin;
     global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
 
-    global.movie.proportion_x = ((double) global.movie.width - 20) / global.SX;
-    global.movie.proportion_y = ((double) global.movie.height - 20) / global.SY;
+    global.movie.draw_x = global.movie.poz_x = 24;
+    global.movie.draw_y = global.movie.poz_y = 56;
 
-    global.movie.poz_x = 3 * global.window.margin;
+    if ((double) global.movie.width / (double) global.movie.height < abs(global.SX / global.SY))
+        // decresing height is needed so with this (global.movie.width * global.SY) / global.SX the rate would be equal, therefore this
+        // value is lower than the given height
+    {
+        global.movie.draw_y += (global.movie.height - ((double) global.movie.width * global.SY) / global.SX) / 2;
+        // padding
+        global.movie.draw_width = -10;
+    }
+    else
+        if ((double) global.movie.width / (double) global.movie.height > abs(global.SX / global.SY))
+        // decresing width is needed so with this (global.movie.height * global.SX) / global.SY the rate would be equal, therefore this
+        // value is lower than the given width
+        {
+            global.movie.draw_x += (global.movie.width - ((double) global.movie.height * global.SX) / global.SY) / 2;
+            // padding 
+            global.movie.draw_height = -10;
+        }
+
+    global.movie.draw_width  += global.movie.width  - 2 * (global.movie.draw_x - global.movie.poz_x);
+    global.movie.draw_height += global.movie.height - 2 * (global.movie.draw_y - global.movie.poz_y);
+    
+    resetZoom();
+
+    global.movie.trajectories_on = false;
+    global.movie.particles_tracked = 5;
+    global.movie.traj_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
+    global.movie.traj_width = 0.5;
+
+    global.movie.grid_line_width = 0.5;
+    global.movie.show_grid_lines = false;
     global.movie.grid_color = colors[1];
+
+    global.movie.monocrome_particles = true;
+    global.movie.particle_color = ImVec4(0.0000, 0.0000, 0.0000, 1.0000);
+
+    global.movie.monocrome_pinningsites = false;
+    global.movie.pinningsite_color = ImVec4(1.0000, 0.0000, 0.0000, 1.0000);
 
     global.movie.show_particles = true;
     global.movie.show_pinningsites = true;
 
+    // graph window data
     global.graph.width = global.video.width;
     global.graph.height = global.video.height / 2;
 
+    // settings window data
     global.settings.width = global.Windowsize_x - global.video.width - 3 * global.window.margin;
     global.settings.height = global.Windowsize_y - 2 * global.window.margin;
 
@@ -115,25 +156,67 @@ int initWindow()
     return 1;
 }
 
+void setVideoButtonsLocation()
+{
+    global.path_length = 255;
+    global.path = (char *) malloc(global.path_length);
+    getRelativePathToProjectRoot(global.path, global.path_length);
+
+    // this is the max length of a  location
+    global.video.location_length = strlen(global.path) + 21;
+
+    global.video.play_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.play_img_location, global.path);
+    strncat(global.video.play_img_location, "img/play.png", 12);
+
+    global.video.pause_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.pause_img_location, global.path);
+    strncat(global.video.pause_img_location, "img/pause.png", 13);
+
+    global.video.rewind_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.rewind_img_location, global.path);
+    strncat(global.video.rewind_img_location, "img/rewind.png", 14);
+
+    global.video.fastforward_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.fastforward_img_location, global.path);
+    strncat(global.video.fastforward_img_location, "img/fast-forward.png", 20);
+
+    global.video.back_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.back_img_location, global.path);
+    strncat(global.video.back_img_location, "img/back.png", 12);
+
+    global.video.next_img_location = (char *) malloc(global.video.location_length);
+    strcpy(global.video.next_img_location, global.path);
+    strncat(global.video.next_img_location, "img/next.png", 12);
+
+}
+
+void resetZoom()
+{
+    global.movie.zoom.corners[0] = ImVec2(0.0, 0.0);
+    global.movie.zoom.corners[1] = ImVec2(global.movie.draw_width, global.movie.draw_height);
+
+    global.movie.zoom.width  = (global.movie.zoom.corners[1].x - global.movie.zoom.corners[0].x) * global.SX / global.movie.draw_width;
+    global.movie.zoom.height = (global.movie.zoom.corners[1].y - global.movie.zoom.corners[0].y) * global.SY / global.movie.draw_height;
+
+    global.movie.proportion_x = (double) global.movie.draw_width  / global.movie.zoom.width;
+    global.movie.proportion_y = (double) global.movie.draw_height / global.movie.zoom.height;
+}
+
 void initMovie(bool show_video_window)
 {
     unsigned int i, n, c;
     int j;
     float x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
-    ImVec2 poz;
 
     BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
-
-        float sy = global.SY;
-        poz = GetWindowPos();
-        transformDistance(&sy);
-        global.movie.poz_y = (global.movie.height - sy) / 2 + poz.y + 30;
-
         global.movie.draw_list = draw_list = GetWindowDrawList();
+        // global.movie.draw_list->AddRect(ImVec2(global.movie.draw_x, global.movie.draw_y), ImVec2(global.movie.draw_x + global.movie.draw_width, global.movie.draw_y + global.movie.draw_height), (ImU32) ImColor(colors[0]));
 
         if (global.movie.show_grid_lines)
             drawGrid(draw_list);
+
         n = 0;
         if (global.objects != NULL)
         {
@@ -141,7 +224,14 @@ void initMovie(bool show_video_window)
             {
                 x = global.objects[global.current_frame][i].x;
                 y = global.objects[global.current_frame][i].y;
+
+                if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
+                    !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
+                    // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
+                    continue;
+
                 r = global.objects[global.current_frame][i].R;
+            
                 transformMovieCoordinates(&x, &y);
                 transformDistance(&r);
                 c = global.objects[global.current_frame][i].color;
@@ -187,6 +277,7 @@ void initMovie(bool show_video_window)
                     }
             }
         }
+        zoom();
     EndChild();
 }
 
@@ -197,7 +288,8 @@ void initVideoWindow(bool *show_video_window)
     Begin("Video", show_video_window,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
-        AddFileLocation(global.moviefilename);
+        // AddFileLocation(global.moviefilename);
+    Text("%f x %f", GetIO().MousePos.x, GetIO().MousePos.y);
         initMovie(true);
         
         GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
@@ -700,6 +792,138 @@ void initSettingsMenuBar()
     }
 }
 
+void zoom()
+{
+    unsigned int w, h, len;
+    char *str;
+
+    static size_t i = 0;
+    static ImVec2 mouse_pos[2];
+    ImVec2 second, text_pos;
+    const float difference = 1.5;
+    // right button on the mouse is pressed
+    if (IsMouseClicked(0))
+    {
+        if (IsMousePosValid() && i < 3)
+        // if click happend in video window
+        {
+            // checking if the click happend in the movie window
+            ImVec2 click = GetIO().MousePos;
+            if ((click.x >= global.movie.poz_x && click.x <= global.movie.poz_x + global.movie.width ) &&
+                (click.y >= global.movie.poz_y && click.y <= global.movie.poz_y + global.movie.height))
+            {
+                // save position where the click occured
+                mouse_pos[i] = GetIO().MousePos;
+                i ++;
+            }
+        }
+    }
+    else
+        // left mouse on the mouse is pressed
+        // reset zoom
+        if (IsMouseClicked(1))
+        {
+            i = 0;
+            resetZoom();
+        }
+    
+
+    if (i == 1)
+        if (IsMousePosValid())
+        {
+            second = GetIO().MousePos;
+            w = abs(mouse_pos[0].x - second.x);
+            h = abs(mouse_pos[0].y - second.y);
+            if (h > difference * w || w > difference * h)
+            // the given area will be distorted too much => do not apply the zoom and give the chance to the user to choose another second point
+            {
+                len = snprintf(NULL, 0, "Too big differece between width and height!");
+                str = (char *) malloc(len + 1);
+                snprintf(str, len + 1, "Too big differece between width and height!");
+            }
+            else
+            {
+                len = snprintf(NULL, 0, "%d x %d", w, h);
+                str = (char *) malloc(len + 1);
+                snprintf(str, len + 1, "%d x %d", w, h);
+            }
+
+            text_pos = second;
+            if (mouse_pos[0].x < second.x)
+            {
+                if (mouse_pos[0].y < second.y) text_pos.x -= 7 * len;
+                else 
+                    if (mouse_pos[0].y > second.y) 
+                    {
+                        text_pos.x -= 7 * len;
+                        text_pos.y = mouse_pos[0].y;
+                    }
+            }
+            else
+                if (mouse_pos[0].x > second.x)
+                {
+                    if (mouse_pos[0].y < second.y)
+                        text_pos.x = mouse_pos[0].x - 7 * len;
+                    else 
+                        if (mouse_pos[0].y > second.y)
+                        {
+                            text_pos.x = mouse_pos[0].x - 7 * len;
+                            text_pos.y = mouse_pos[0].y;
+                        }
+                }
+            
+
+            global.movie.draw_list->AddRect(mouse_pos[0], second, (ImU32) ImColor(colors[0]), 0.0, 15, 2.0);
+            global.movie.draw_list->AddText(text_pos, (ImU32) ImColor(colors[0]), str);
+
+            free(str);
+        }
+
+    if (i == 2)
+    {
+        w = abs(mouse_pos[0].x - mouse_pos[1].x);
+        h = abs(mouse_pos[0].y - mouse_pos[1].y);
+
+        if (h > difference * w || w > difference * h)
+            // the given area will be distorted too much => do not apply the zoom and give the chance to the user to choose another second point
+        {
+            i --;
+            return;
+        }
+        for (size_t j = 0; j < i; j++)
+            global.movie.zoom.corners[j] = mouse_pos[j];
+
+        if (mouse_pos[0].x <= mouse_pos[1].x && mouse_pos[0].y < mouse_pos[1].y)
+        {
+            global.movie.zoom.corners[0] = mouse_pos[0];
+            global.movie.zoom.corners[1] = mouse_pos[1];
+        }
+        else if (mouse_pos[0].x > mouse_pos[1].x && mouse_pos[0].y >= mouse_pos[1].y)
+        {
+            global.movie.zoom.corners[0] = mouse_pos[1];
+            global.movie.zoom.corners[1] = mouse_pos[0];  
+        }
+
+        // converting selected pixel values into measurment in the system
+        for (size_t j = 0; j < i; j++)
+        {
+            global.movie.zoom.corners[j].x = (global.movie.zoom.corners[j].x - global.movie.draw_x) / global.movie.proportion_x;
+            global.movie.zoom.corners[j].y = (global.movie.zoom.corners[j].y - global.movie.draw_y) / global.movie.proportion_y;
+        }
+
+        // calculating zoomed area's width and height
+        global.movie.zoom.width  = global.movie.zoom.corners[1].x - global.movie.zoom.corners[0].x;
+        global.movie.zoom.height = global.movie.zoom.corners[1].y - global.movie.zoom.corners[0].y;
+
+        // calculating new movie proportion
+        global.movie.proportion_x = (double) global.movie.draw_width  / global.movie.zoom.width;
+        global.movie.proportion_y = (double) global.movie.draw_height / global.movie.zoom.height;
+
+        // if i = 3 we do not allow the zoom's usage till it is not reseted
+        i ++;
+    }
+}
+
 void initSettingsWindow(bool *show)
 {
     SetNextWindowPos(ImVec2(global.settings.poz_x, global.settings.poz_y));
@@ -709,12 +933,6 @@ void initSettingsWindow(bool *show)
         ImGuiWindowFlags_MenuBar);
 
         initSettingsMenuBar();
-
-        if (CollapsingHeader("Help"))
-        {
-            BulletText("Double-click on title bar to collapse window.");
-            BulletText("CTRL+Click on a slider to input value as text.");
-        }
 
         if (global.objects == NULL) pushDisable();
         if (CollapsingHeader("Movie"))
@@ -810,6 +1028,23 @@ void initSettingsWindow(bool *show)
             }
         }
         if (global.stats == NULL) popDisable();
+
+        if (CollapsingHeader("Help"))
+        {
+            // 62 characters per row
+            if (TreeNode("General"))
+            {
+                BulletText("Double-click on title bar to collapse window.");
+                BulletText("CTRL+Click on a slider to input value as text.");
+                TreePop();
+            }
+            if (TreeNode("Zoom"))
+            {
+                BulletText("For zoom click in the movie just select two points in the\n movie which define the corners of the rectangle.");
+                BulletText("To reset zoom left click on the movie.");
+                TreePop();
+            }
+        }
     
     End();
 }
@@ -827,8 +1062,8 @@ void startMainLoop()
         NewFrame();
 
         initVideoWindow(NULL);
-        // initGraphWindow(NULL);
-        // initSettingsWindow(NULL);
+        initGraphWindow(NULL);
+        initSettingsWindow(NULL);
 
         // Rendering
         Render();
@@ -919,12 +1154,15 @@ void generalTransformCoordinates(unsigned int *x, unsigned int x_max, unsigned i
 
 void transformMovieCoordinates(float *x, float *y)
 {
-    *x = *x - global.zoom_x0;
-    *y = *y - global.zoom_y0;
-    *y = global.SY - *y;
+    // translate point to the origin
+    *x -= global.movie.zoom.corners[0].x;
+    *y -= global.movie.zoom.corners[0].y;
+    // flipping near y axis
+    // global.movie.draw_height / global.movie.proportion_y --> the shown system height
+    *y = global.movie.draw_height / global.movie.proportion_y - *y;
 
-    *x = *x / global.zoom_deltax * global.movie.proportion_x * global.SX + global.movie.poz_x;
-    *y = *y / global.zoom_deltay * global.movie.proportion_y * global.SY + global.movie.poz_y;
+    *x = *x * global.movie.proportion_x + global.movie.draw_x;
+    *y = *y * global.movie.proportion_y + global.movie.draw_y;
 }
 
 //transforms from simulation unit distances to Opengl units

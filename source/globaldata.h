@@ -37,6 +37,15 @@ struct window_struct
     int margin;
 };
 
+struct zoom_struct
+{
+    // 0 - left  upper coner
+    // 1 - right lower coner
+    ImVec2 corners[2];
+    // size of the zoomed area
+    float width, height;
+};
+
 struct video_window
 {
     unsigned int width;
@@ -58,11 +67,20 @@ struct video_window
 
 struct movie_window
 {
+    // window's sizes
     unsigned int width;
     unsigned int height;
 
+    // window's top left corner
     unsigned int poz_x;
     unsigned int poz_y;
+
+    // the upper corner where drawing starts
+    unsigned int draw_x;
+    unsigned int draw_y;
+
+    unsigned int draw_width;
+    unsigned int draw_height;
 
     float proportion_x, proportion_y;
 
@@ -86,6 +104,7 @@ struct movie_window
     ImVec4 pinningsite_color;
 
     ImDrawList *draw_list;
+    struct zoom_struct zoom; 
 };
 
 struct graph_window
@@ -129,11 +148,6 @@ struct global_struct
     double SX;
     double SY;
 
-    //Sytem Zoom in
-    float zoom_x0, zoom_y0;         //lower left corner
-    float zoom_x1, zoom_y1;         //upper right corner
-    float zoom_deltax, zoom_deltay; //size of the zoomed area
-
     float radius_particle;
     float radius_vertex;
 
@@ -175,12 +189,16 @@ struct global_struct
 
 extern struct global_struct global;
 
+void resetZoom();
 void reallocateFileNames(size_t);
 char *removeExtension(const char *);
 char *getExtension(const char *);
 char *substr(const char *, int, int);
 void replaceLast(char *, const char *, const char *);
 void initializeGlobalData(char *);
+
+void getCurrentWorkingDir(char *);
+void getRelativePathToProjectRoot(char *, size_t);
 
 void freeArrays();
 
