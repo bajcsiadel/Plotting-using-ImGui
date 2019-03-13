@@ -918,7 +918,7 @@ void zoom()
         // calculating new movie proportion
         global.movie.proportion_x = (double) global.movie.draw_width  / global.movie.zoom.width;
         global.movie.proportion_y = (double) global.movie.draw_height / global.movie.zoom.height;
-
+        
         // if i = 3 we do not allow the zoom's usage till it is not reseted
         i ++;
     }
@@ -984,11 +984,13 @@ void initSettingsWindow(bool *show)
             Separator();
             if (global.N_particles == 0) popDisable();
 
+            if (abs(global.SX - global.movie.zoom.width) < 0.05  && abs(global.SY - global.movie.zoom.height) < 0.05) pushDisable();
             if (TreeNode("Zoom"))
             {
                 TreePop();
                 Separator();
             }
+            if (abs(global.SX - global.movie.zoom.width) < 0.05  && abs(global.SY - global.movie.zoom.height) < 0.05) popDisable();
         }
         if (global.objects == NULL) popDisable();
 
