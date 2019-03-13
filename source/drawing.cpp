@@ -193,6 +193,8 @@ void setVideoButtonsLocation()
 
 void resetZoom()
 {
+    global.movie.zoom.i = 0;
+
     global.movie.zoom.corners[0] = ImVec2(0.0, 0.0);
     global.movie.zoom.corners[1] = ImVec2(global.movie.draw_width, global.movie.draw_height);
 
@@ -785,6 +787,7 @@ void initSettingsMenuBar()
                 open_movie = false;
                 global.settings.open = -1;
             }
+            resetZoom();
             global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
             global.current_frame = 0;
             global.video.play = true;
@@ -797,14 +800,13 @@ void zoom()
     unsigned int w, h, len;
     char *str;
 
-    static size_t i = 0;
     static ImVec2 mouse_pos[2];
     ImVec2 second, text_pos;
     const float difference = 1.5;
     // right button on the mouse is pressed
     if (IsMouseClicked(0))
     {
-        if (IsMousePosValid() && i < 3)
+        if (IsMousePosValid() && global.movie.zoom.i < 3)
         // if click happend in video window
         {
             // checking if the click happend in the movie window
@@ -813,8 +815,8 @@ void zoom()
                 (click.y >= global.movie.poz_y && click.y <= global.movie.poz_y + global.movie.height))
             {
                 // save position where the click occured
-                mouse_pos[i] = GetIO().MousePos;
-                i ++;
+                mouse_pos[global.movie.zoom.i] = GetIO().MousePos;
+                global.movie.zoom.i ++;
             }
         }
     }
@@ -822,13 +824,10 @@ void zoom()
         // left mouse on the mouse is pressed
         // reset zoom
         if (IsMouseClicked(1))
-        {
-            i = 0;
             resetZoom();
-        }
     
 
-    if (i == 1)
+    if (global.movie.zoom.i == 1)
         if (IsMousePosValid())
         {
             second = GetIO().MousePos;
@@ -879,7 +878,7 @@ void zoom()
             free(str);
         }
 
-    if (i == 2)
+    if (global.movie.zoom.i == 2)
     {
         w = abs(mouse_pos[0].x - mouse_pos[1].x);
         h = abs(mouse_pos[0].y - mouse_pos[1].y);
@@ -887,10 +886,10 @@ void zoom()
         if (h > difference * w || w > difference * h)
             // the given area will be distorted too much => do not apply the zoom and give the chance to the user to choose another second point
         {
-            i --;
+            global.movie.zoom.i --;
             return;
         }
-        for (size_t j = 0; j < i; j++)
+        for (size_t j = 0; j < global.movie.zoom.i; j++)
             global.movie.zoom.corners[j] = mouse_pos[j];
 
         if (mouse_pos[0].x <= mouse_pos[1].x && mouse_pos[0].y < mouse_pos[1].y)
@@ -905,7 +904,7 @@ void zoom()
         }
 
         // converting selected pixel values into measurment in the system
-        for (size_t j = 0; j < i; j++)
+        for (size_t j = 0; j < global.movie.zoom.i; j++)
         {
             global.movie.zoom.corners[j].x = (global.movie.zoom.corners[j].x - global.movie.draw_x) / global.movie.proportion_x;
             global.movie.zoom.corners[j].y = (global.movie.zoom.corners[j].y - global.movie.draw_y) / global.movie.proportion_y;
@@ -920,7 +919,7 @@ void zoom()
         global.movie.proportion_y = (double) global.movie.draw_height / global.movie.zoom.height;
         
         // if i = 3 we do not allow the zoom's usage till it is not reseted
-        i ++;
+        global.movie.zoom.i ++;
     }
 }
 

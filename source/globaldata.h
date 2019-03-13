@@ -44,6 +44,7 @@ struct zoom_struct
     ImVec2 corners[2];
     // size of the zoomed area
     float width, height;
+    size_t i;
 };
 
 struct video_window
