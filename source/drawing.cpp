@@ -761,7 +761,13 @@ void initSettingsMenuBar()
         EndMenuBar();
     }
     if (open_movie || open_stats) global.video.play = false;
-    dlg.chooseFileDialog(open_movie || open_stats, "../../Time-Crystals/results", ".mvi;.txt");
+
+    // setting extension depeding on which file do we want to open
+    static std::string extension;
+    if (open_movie) extension = ".mvi";
+    else if (open_stats) extension = ".txt";
+    
+    dlg.chooseFileDialog(open_movie || open_stats, "../../Time-Crystals/results", extension.c_str());
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
         if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0 &&
