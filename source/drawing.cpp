@@ -153,6 +153,8 @@ int initWindow()
     global.settings.poz_x = global.window.margin + global.video.width + global.window.margin;
     global.settings.poz_y = global.window.margin;
 
+    global.settings.open = -1;
+
     return 1;
 }
 
@@ -763,13 +765,13 @@ void initSettingsMenuBar()
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
         if (strncmp(dlg.getChosenPath(), global.moviefilename, (length < global.length ? length : global.length)) != 0 &&
-            strncmp(dlg.getChosenPath(), global.statfilename, (length < global.length ? length : global.length)) != 0)
+            strncmp(dlg.getChosenPath(), global.statfilename,  (length < global.length ? length : global.length)) != 0)
         {
             if (length > global.length)
             {
                 global.length = length;
                 global.moviefilename = (char *) realloc(global.moviefilename, length);
-                global.statfilename = (char *) realloc(global.statfilename, length);
+                global.statfilename  = (char *) realloc(global.statfilename,  length);
             }
             if (global.settings.open == 1)
             {
@@ -777,7 +779,6 @@ void initSettingsMenuBar()
                 global.statfilename[length] = '\0';
                 readStatisticsfileData();
                 open_stats = false;
-                global.settings.open = -1;
             }
             else if (global.settings.open == 0)
             {
@@ -785,14 +786,22 @@ void initSettingsMenuBar()
                 global.moviefilename[length] = '\0';
                 readMoviefileData();
                 open_movie = false;
-                global.settings.open = -1;
             }
             resetZoom();
             global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
             global.current_frame = 0;
-            global.video.play = true;
         }
-    }
+        global.video.play = true;
+        global.settings.open = -1;
+    } 
+    // else
+    //     if (global.settings.open > -1)
+    //     {
+    //         global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
+    //         global.current_frame = 0;
+    //         global.video.play = true;
+    //         global.settings.open = -1;
+    //     }
 }
 
 void zoom()
@@ -806,7 +815,7 @@ void zoom()
     // right button on the mouse is pressed
     if (IsMouseClicked(0))
     {
-        if (IsMousePosValid() && global.movie.zoom.i < 3)
+        if (IsMousePosValid() && global.movie.zoom.i < 3 && global.settings.open == -1)
         // if click happend in video window
         {
             // checking if the click happend in the movie window
@@ -827,7 +836,7 @@ void zoom()
             resetZoom();
     
 
-    if (global.movie.zoom.i == 1)
+    if (global.movie.zoom.i == 1 && global.settings.open == -1)
         if (IsMousePosValid())
         {
             second = GetIO().MousePos;
@@ -892,15 +901,29 @@ void zoom()
         for (size_t j = 0; j < global.movie.zoom.i; j++)
             global.movie.zoom.corners[j] = mouse_pos[j];
 
-        if (mouse_pos[0].x <= mouse_pos[1].x && mouse_pos[0].y < mouse_pos[1].y)
+        if (mouse_pos[0].x < mouse_pos[1].x && mouse_pos[0].y < mouse_pos[1].y)
         {
             global.movie.zoom.corners[0] = mouse_pos[0];
             global.movie.zoom.corners[1] = mouse_pos[1];
         }
-        else if (mouse_pos[0].x > mouse_pos[1].x && mouse_pos[0].y >= mouse_pos[1].y)
+        else if (mouse_pos[0].x > mouse_pos[1].x && mouse_pos[0].y > mouse_pos[1].y)
         {
             global.movie.zoom.corners[0] = mouse_pos[1];
             global.movie.zoom.corners[1] = mouse_pos[0];  
+        }
+        else if (mouse_pos[0].x < mouse_pos[1].x && mouse_pos[0].y > mouse_pos[1].y)
+        {
+            global.movie.zoom.corners[0].x = mouse_pos[0].x;
+            global.movie.zoom.corners[0].y = mouse_pos[1].y;
+            global.movie.zoom.corners[1].x = mouse_pos[1].x;
+            global.movie.zoom.corners[1].y = mouse_pos[0].y;  
+        }
+        else if (mouse_pos[0].x > mouse_pos[1].x && mouse_pos[0].y < mouse_pos[1].y)
+        {
+            global.movie.zoom.corners[0].x = mouse_pos[1].x;
+            global.movie.zoom.corners[0].y = mouse_pos[0].y;
+            global.movie.zoom.corners[1].x = mouse_pos[0].x;
+            global.movie.zoom.corners[1].y = mouse_pos[1].y; 
         }
 
         // converting selected pixel values into measurment in the system
