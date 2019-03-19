@@ -766,7 +766,7 @@ void initSettingsMenuBar()
     static std::string extension;
     if (open_movie) extension = ".mvi";
     else if (open_stats) extension = ".txt";
-    
+
     dlg.chooseFileDialog(open_movie || open_stats, "../../Time-Crystals/results", extension.c_str());
     if ((length = strlen(dlg.getChosenPath())) > 0)
     {
@@ -775,21 +775,24 @@ void initSettingsMenuBar()
         {
             if (length > global.length)
             {
-                global.length = length;
+                // reallocating memory if the new filename is longer then the previous
+                // length calculates just the 'normal' characters so we have to increment by one because of the null-character
+                global.length = ++length;
                 global.moviefilename = (char *) realloc(global.moviefilename, length);
                 global.statfilename  = (char *) realloc(global.statfilename,  length);
             }
+
             if (global.settings.open == 1)
             {
                 strncpy(global.statfilename, dlg.getChosenPath(), length);
-                global.statfilename[length] = '\0';
+                global.statfilename[length - 1] = '\0';
                 readStatisticsfileData();
                 open_stats = false;
             }
             else if (global.settings.open == 0)
             {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
-                global.moviefilename[length] = '\0';
+                global.moviefilename[length - 1] = '\0';
                 readMoviefileData();
                 open_movie = false;
             }
@@ -898,8 +901,9 @@ void zoom()
         w = abs(mouse_pos[0].x - mouse_pos[1].x);
         h = abs(mouse_pos[0].y - mouse_pos[1].y);
 
-        if (h > difference * w || w > difference * h)
+        if (h > difference * w || w > difference * h || h < 5 || w < 5)
             // the given area will be distorted too much => do not apply the zoom and give the chance to the user to choose another second point
+            // or the selected area is too small or the two selected points are the same
         {
             global.movie.zoom.i --;
             return;
