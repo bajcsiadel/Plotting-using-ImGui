@@ -16,24 +16,24 @@ int main(int argc, char** argv)
     char *filename = (char *) malloc(255);
     if (argc == 2) memcpy(filename, argv[1], strlen(argv[1]));
     else filename[0] = '\0';    // zero length string
-    initializeGlobalData(filename);
+    initialize_global_data(filename);
     free(filename);
 
-    readMoviefileData();
+    read_moviefile_data();
     
     // write_frame_data_to_file();
     
-    if (setupGLFW() == 0) {
+    if (setup_GLFW() == 0) {
         fprintf(stderr, "Glfw Error: could not initalize!\n");
         return 1;
     }
 
-    if (initWindow() == 0) {
+    if (init_window() == 0) {
         fprintf(stderr, "Glfw Error: could not create window!\n");
         return 1;
     }
 
-    startMainLoop();
-    freeArrays();
+    start_main_loop();
+    free_arrays();
     return 0;
 }

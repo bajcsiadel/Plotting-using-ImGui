@@ -190,22 +190,22 @@ struct global_struct
 
 extern struct global_struct global;
 
-void resetZoom();
-void reallocateFileNames(size_t);
-char *removeExtension(const char *);
-char *getExtension(const char *);
+void reset_zoom();
+void reallocate_filenames(size_t);
+char *remove_extension(const char *);
+char *get_extension(const char *);
 char *substr(const char *, int, int);
-void replaceLast(char *, const char *, const char *);
-void initializeGlobalData(char *);
+void replace_last(char *, const char *, const char *);
+void initialize_global_data(char *);
 
-void getCurrentWorkingDir(char *);
-void getRelativePathToProjectRoot(char *, size_t);
+void get_current_working_dir(char *);
+void get_relative_path_to_project_root(char *, size_t);
 
-void freeArrays();
+void free_arrays();
 
-void readMoviefileData(bool = true);
-void readStatisticsfileData(bool = true);
+void read_moviefile_data(bool = true);
+void read_statisticsfile_data(bool = true);
 
-void writeFrameDataToFile();
+void write_frame_data_to_file();
 
 #endif /* globaldata_h */
