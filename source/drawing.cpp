@@ -29,19 +29,6 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-const ImVec4 colors[] = {
-    ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0 - red
-    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 1 - gray
-    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 2 - gray
-    ImVec4(0.0000, 0.0000, 0.0000, 1.0000), // 3 - black
-    ImVec4(0.8941, 0.1019, 0.1098, 1.0000), // 4 - red shade
-    ImVec4(0.4941, 0.6117, 0.9215, 1.0000), // 5 - blue
-    ImVec4(0.3019, 0.6862, 0.2901, 1.0000), // 6 - green
-    ImVec4(0.8900, 0.6120 ,0.2160, 1.0000), // 7 - orange
-    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8 - almost red
-    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 9 - almost red
-};
-
 int setup_GLFW()
 {
     // Setup GLFW
@@ -699,6 +686,63 @@ void calculate_coordinates_on_graph(int i)
     free(data1);
 }
 
+void save_video(bool *save_movie)
+{
+    static int option = 0;
+    static int from = 0, to = global.N_frames;
+
+    SetNextWindowSize(ImVec2(350, 200));
+    if (BeginPopupModal("Save video", save_movie)) {
+        // choosing filename
+
+        Text("Choose one option:");
+        RadioButton("All", &option, 0);
+
+        RadioButton("From: ", &option, 1);
+        if (option == 1)
+        {
+            SameLine();
+            PushItemWidth(100);
+            InputInt("##to", &to);
+            PopItemWidth();
+        }
+
+        RadioButton("Till: ", &option, 2);
+        if (option == 2)
+        {
+            SameLine();
+            PushItemWidth(100);
+            InputInt("##from", &from);
+            PopItemWidth();
+        }
+
+        RadioButton("Intervall: ", &option, 3);
+        if (option == 3)
+        {
+            SameLine();
+            PushItemWidth(100);
+            InputInt("##from", &from);
+            PopItemWidth();
+            SameLine();
+            Text(" - ");
+            SameLine();
+            PushItemWidth(100);
+            InputInt("##to", &to);
+            PopItemWidth();
+        }
+
+        if (Button("Save"));
+
+        SameLine(); 
+        if (Button("Cancel"))
+        {
+            global.video.play = true;
+            *save_movie = false;
+        }
+        EndPopup();
+    }
+}
+
 void init_settings_menubar()
 {
     size_t length;
@@ -750,21 +794,12 @@ void init_settings_menubar()
         EndMenuBar();
     }
 
+    if (open_movie || open_stats || save_movie) global.video.play = false;
+
     if (save_movie)
         OpenPopup("Save video");
 
-    if (BeginPopupModal("Save video", &save_movie)) {
-        static int option = 0;
-        // choosing filename
-        RadioButton("All", &option, 0);
-        RadioButton("From: ", &option, 1);
-        RadioButton("Till: ", &option, 2);
-        RadioButton("Intervall: ", &option, 3);
-        Button("Save"); SameLine(); Button("Cancel");
-        EndPopup();
-    }
-
-    if (open_movie || open_stats) global.video.play = false;
+    save_video(&save_movie);
 
     // setting extension depeding on which file do we want to open
     static std::string extension;

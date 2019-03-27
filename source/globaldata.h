@@ -15,6 +15,19 @@
 #include "imgui.h"
 #include "imguifilesystem.h"
 
+const ImVec4 colors[] = {
+    ImVec4(1.0000, 0.0000, 0.0000, 1.0000), // 0 - red
+    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 1 - gray
+    ImVec4(0.7000, 0.7000, 0.7000, 1.0000), // 2 - gray
+    ImVec4(0.0000, 0.0000, 0.0000, 1.0000), // 3 - black
+    ImVec4(0.8941, 0.1019, 0.1098, 1.0000), // 4 - red shade
+    ImVec4(0.4941, 0.6117, 0.9215, 1.0000), // 5 - blue
+    ImVec4(0.3019, 0.6862, 0.2901, 1.0000), // 6 - green
+    ImVec4(0.8900, 0.6120 ,0.2160, 1.0000), // 7 - orange
+    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 8 - almost red
+    ImVec4(0.8500, 0.1290, 0.1250, 1.0000), // 9 - almost red
+};
+
 struct object_struct
 {
     unsigned int color;
