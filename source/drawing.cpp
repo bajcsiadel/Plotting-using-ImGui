@@ -96,7 +96,7 @@ int init_window()
 
     // movie window data
     global.movie.width = global.video.width - 2 * global.window.margin;
-    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
+    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
 
     global.movie.draw_x = global.movie.poz_x = 24;
     global.movie.draw_y = global.movie.poz_y = 56;
@@ -211,7 +211,7 @@ void init_movie(bool show_video_window)
 {
     unsigned int i, n, c;
     int j;
-    float x, y, r, x1, y1, x2, y2;
+    double x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
 
     BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
@@ -349,7 +349,7 @@ void draw_grid(ImDrawList *draw_list)
 {
     unsigned int N_rows, N_columns;
     unsigned int i;
-    float dx, dy;
+    double dx, dy;
     ImU32 color;
 
     N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
@@ -362,8 +362,8 @@ void draw_grid(ImDrawList *draw_list)
 
     for (i = 1; i < N_rows; i++)
     {
-        float y0 = i * dy, y1 = i * dy;
-        float x0 = 0.0, x1 = global.SX;
+        double y0 = i * dy, y1 = i * dy;
+        double x0 = 0.0, x1 = global.SX;
 
         trensform_movie_coordinates(&x0, &y0);
         trensform_movie_coordinates(&x1, &y1);
@@ -373,8 +373,8 @@ void draw_grid(ImDrawList *draw_list)
 
     for (i = 1; i < N_columns; i++)
     {
-        float x0 = i * dx, x1 = i * dx;
-        float y0 = 0.0, y1 = global.SY;
+        double x0 = i * dx, x1 = i * dx;
+        double y0 = 0.0, y1 = global.SY;
 
         trensform_movie_coordinates(&x0, &y0);
         trensform_movie_coordinates(&x1, &y1);
@@ -383,7 +383,7 @@ void draw_grid(ImDrawList *draw_list)
     }
 }
 
-int calculate_number_length(float x)
+int calculate_number_length(double x)
 {
     int n, xi;
     n = 0;
@@ -395,14 +395,14 @@ int calculate_number_length(float x)
     return n;
 }
 
-void drawDecartesCoordinateSystem(ImDrawList *draw_list, 
+void draw_descartes_coordinate_system(ImDrawList *draw_list, 
     unsigned int *poz_x, unsigned int *poz_y, 
     unsigned int *size_x, unsigned int *size_y, 
     unsigned int x_max, ImVec2 y_lims, unsigned int *origins_y_pozition)
 {
     // y_lims = ImVec2(min, max)
     unsigned int j, t_value, t_step, axis, tick_poz, last_big_tick_mark;
-    float range, y_value, y_step, min;
+    double range, y_value, y_step, min;
     ImU32 black, gray;
     const unsigned int a = 7, n = calculate_number_length(y_lims.y) - 1; // length of the arrow
     const unsigned int x = *poz_x + n * 5,
@@ -517,16 +517,16 @@ void init_graph_window(bool *show)
     unsigned int i, y0, len;
     int time_index;
     unsigned int t1, t2, t_max, t_min, t_frame, t0, tn;
-    float *data1, *data2;
-    float *data_min, *data_max;
-    float min, max;
+    double *data1, *data2;
+    double *data_min, *data_max;
+    double min, max;
     ImDrawList *draw_list;
 
     poz_x = global.window.margin;
     poz_y = global.window.margin + global.video.height + global.window.margin;
 
-    data1 = (float *) malloc(global.number_of_columns * sizeof(float));
-    data2 = (float *) malloc(global.number_of_columns * sizeof(float));
+    data1 = (double *) malloc(global.number_of_columns * sizeof(double));
+    data2 = (double *) malloc(global.number_of_columns * sizeof(double));
     
     SetNextWindowPos(ImVec2(poz_x, poz_y));
     SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
@@ -554,8 +554,8 @@ void init_graph_window(bool *show)
                 size_y -= global.window.margin;
                 size_x -= 60;
                 
-                data_max = (float *) malloc(global.number_of_columns * sizeof(float));
-                data_min = (float *) malloc(global.number_of_columns * sizeof(float));
+                data_max = (double *) malloc(global.number_of_columns * sizeof(double));
+                data_min = (double *) malloc(global.number_of_columns * sizeof(double));
 
                 max_stats(&t_max, data_max);
                 min_stats(&t_min, data_min);
@@ -575,10 +575,10 @@ void init_graph_window(bool *show)
                 free(data_max);
                 free(data_min);
 
-                drawDecartesCoordinateSystem(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
+                draw_descartes_coordinate_system(draw_list, &poz_x, &poz_y, &size_x, &size_y, t_max, ImVec2(min, max), &y0);
                 max = (min < 0.0 ? max - min : max);
 
-                memcpy(data2, global.stats[0].data, global.number_of_columns * sizeof(float));
+                memcpy(data2, global.stats[0].data, global.number_of_columns * sizeof(double));
                 t2 = global.stats[0].time;
 
                 general_transform_coordinates(&t2, t_max, size_x, poz_x);
@@ -597,10 +597,10 @@ void init_graph_window(bool *show)
                 if (show_at_least_one_stat_data())
                     for (i = 1; i < global.N_stats; i++)
                     {
-                        memcpy(data1, data2, global.number_of_columns * sizeof(float));
+                        memcpy(data1, data2, global.number_of_columns * sizeof(double));
                         tn = t1 = t2;
 
-                        memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(float));
+                        memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(double));
                         t2 = global.stats[i].time;
 
                         general_transform_coordinates(&t2, t_max, size_x, poz_x);
@@ -647,33 +647,33 @@ void init_graph_window(bool *show)
 
 void calculate_coordinates_on_graph(int i)
 {
-    float *data1, *data2;
-    float *values;
+    double *data1, *data2;
+    double *values;
     int t1, t2, t_frame;
     char *text;
     size_t len;
 
-    data1 = (float *) malloc(global.number_of_columns * sizeof(float));
-    data2 = (float *) malloc(global.number_of_columns * sizeof(float));
-    values = (float *) malloc(global.number_of_columns * sizeof(float));
+    data1 = (double *) malloc(global.number_of_columns * sizeof(double));
+    data2 = (double *) malloc(global.number_of_columns * sizeof(double));
+    values = (double *) malloc(global.number_of_columns * sizeof(double));
 
     t_frame = global.current_frame * 100;
-    memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(float));
+    memcpy(data2, global.stats[i].data, global.number_of_columns * sizeof(double));
     t2 = global.stats[i].time;
 
     if (i != 0)
     {
-        memcpy(data1, global.stats[i].data, global.number_of_columns * sizeof(float));
+        memcpy(data1, global.stats[i].data, global.number_of_columns * sizeof(double));
         t1 = global.stats[i - 1].time;
     }
     else
     {
-        memcpy(data1, data2, global.number_of_columns * sizeof(float));
+        memcpy(data1, data2, global.number_of_columns * sizeof(double));
         t1 = t2;
     }
     
     if (t1 == t2 || t1 == t_frame) 
-        memcpy(values, data1, global.number_of_columns * sizeof(float));
+        memcpy(values, data1, global.number_of_columns * sizeof(double));
     else
         for (size_t j = 0; j < global.number_of_columns; j++)
             values[j] = ((t_frame - t1) * (data2[j] - data1[j])) / (t2 - t1) + data1[j];
@@ -704,13 +704,10 @@ void init_settings_menubar()
     size_t length;
     static ImGuiFs::Dialog dlg;
     bool open_movie, open_stats;
-    // bool save_movie, save_stats;
+    static bool save_movie = false;/*, save_stats;*/
 
     open_movie = false;
     open_stats = false;
-
-    // save_movie = false;
-    // save_stats = false;
     
     if (BeginMenuBar())
     {
@@ -733,7 +730,8 @@ void init_settings_menubar()
             }
             if (BeginMenu("Save"))
             {
-                MenuItem("Movie to avi");
+                if (MenuItem("Movie to avi"))
+                    save_movie = true;
                 MenuItem("Graph");
                 EndMenu();
             }
@@ -751,6 +749,21 @@ void init_settings_menubar()
         }
         EndMenuBar();
     }
+
+    if (save_movie)
+        OpenPopup("Save video");
+
+    if (BeginPopupModal("Save video", &save_movie)) {
+        static int option = 0;
+        // choosing filename
+        RadioButton("All", &option, 0);
+        RadioButton("From: ", &option, 1);
+        RadioButton("Till: ", &option, 2);
+        RadioButton("Intervall: ", &option, 3);
+        Button("Save"); SameLine(); Button("Cancel");
+        EndPopup();
+    }
+
     if (open_movie || open_stats) global.video.play = false;
 
     // setting extension depeding on which file do we want to open
@@ -788,7 +801,7 @@ void init_settings_menubar()
                 open_movie = false;
             }
             reset_zoom();
-            global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
+            global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
             global.current_frame = 0;
         }
         global.video.play = true;
@@ -797,7 +810,7 @@ void init_settings_menubar()
     // else
     //     if (global.settings.open > -1)
     //     {
-    //         global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((float) strlen(global.moviefilename) * 6 / (float) (global.movie.width - 150)) * 13.5 - 2; // filename height
+    //         global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
     //         global.current_frame = 0;
     //         global.video.play = true;
     //         global.settings.open = -1;
@@ -811,7 +824,7 @@ void zoom()
 
     static ImVec2 mouse_pos[2];
     ImVec2 second, text_pos;
-    const float difference = 1.5;
+    const double difference = 1.5;
     // right button on the mouse is pressed
     if (IsMouseClicked(0))
     {
@@ -968,13 +981,13 @@ void init_settings_window(bool *show)
             Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
             if (global.movie.show_grid_lines)
             {
-                ColorEdit3("Grid line color", (float*)&global.movie.grid_color);
+                ColorEdit3("Grid line color", (float *)&global.movie.grid_color);
                 DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
             }
             Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
             Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
             if (global.movie.monocrome_pinningsites)
-                ColorEdit3("Pinningsite color", (float*)&global.movie.pinningsite_color);
+                ColorEdit3("Pinningsite color", (float *)&global.movie.pinningsite_color);
             Separator();
             if (!global.movie.show_pinningsites) pop_disable();
             if (global.N_pinningsites == 0) pop_disable();
@@ -986,7 +999,7 @@ void init_settings_window(bool *show)
             Checkbox("Toggle trajectory", &global.movie.trajectories_on);
             if (global.movie.trajectories_on)
             {
-                float spacing = GetStyle().ItemInnerSpacing.x;
+                double spacing = GetStyle().ItemInnerSpacing.x;
                 PushButtonRepeat(true);
                 if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
                 SameLine(0.0f, spacing);
@@ -995,7 +1008,7 @@ void init_settings_window(bool *show)
                 SameLine();
                 Text("%d", global.movie.particles_tracked);
 
-                ColorEdit3("Trajectory color", (float*)&global.movie.traj_color);
+                ColorEdit3("Trajectory color", (float *)&global.movie.traj_color);
                 SameLine(); 
                 show_help_marker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
                 DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
@@ -1118,7 +1131,7 @@ void cleanup()
     glfwTerminate();
 }
 
-void max_stats(unsigned int *t_max, float *data_max)
+void max_stats(unsigned int *t_max, double *data_max)
 {
     unsigned int i, j;
 
@@ -1142,7 +1155,7 @@ void max_stats(unsigned int *t_max, float *data_max)
     }
 }
 
-void min_stats(unsigned int *t_min, float *data_min)
+void min_stats(unsigned int *t_min, double *data_min)
 {
     unsigned int i, j;
 
@@ -1166,10 +1179,10 @@ void min_stats(unsigned int *t_min, float *data_min)
     }
 }
 
-void general_transform_coordinates(float *x, float x_max, int x_size, int distance_from_origin, bool flip)
+void general_transform_coordinates(double *x, double x_max, int x_size, int distance_from_origin, bool flip)
 {
     if (flip) *x = x_max - *x;
-    *x = *x * (float) x_size / x_max + distance_from_origin;
+    *x = *x * (double) x_size / x_max + distance_from_origin;
 }
 
 void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned int x_size, int distance_from_origin, bool flip)
@@ -1178,7 +1191,7 @@ void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned
     *x = *x * x_size / x_max + distance_from_origin;
 }
 
-void trensform_movie_coordinates(float *x, float *y)
+void trensform_movie_coordinates(double *x, double *y)
 {
     // translate point to the origin
     *x -= global.movie.zoom.corners[0].x;
@@ -1192,7 +1205,7 @@ void trensform_movie_coordinates(float *x, float *y)
 }
 
 //transforms from simulation unit distances to Opengl units
-void trensform_distance(float *r)
+void trensform_distance(double *r)
 {
     *r = *r * global.movie.proportion_x;
 }
