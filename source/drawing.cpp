@@ -229,6 +229,10 @@ int init_window()
 
     global.settings.open = -1;
 
+    global.save.current = global.save.from = 0;
+    global.save.to = global.N_frames;
+    global.save.started = false;
+
     return 1;
 }
 
@@ -776,7 +780,6 @@ void calculate_coordinates_on_graph(int i)
 void save_video(bool *save_movie)
 {
     static int option = 0;
-    static int from = 0, to = global.N_frames;
 
     SetNextWindowSize(ImVec2(375, 200));
     if (BeginPopupModal("Save video", save_movie, ImGuiWindowFlags_NoResize)) {
@@ -790,7 +793,7 @@ void save_video(bool *save_movie)
         {
             SameLine();
             PushItemWidth(100);
-            InputInt("##to", &to);
+            InputInt("##to", &global.save.to);
             PopItemWidth();
         }
 
@@ -799,7 +802,7 @@ void save_video(bool *save_movie)
         {
             SameLine();
             PushItemWidth(100);
-            InputInt("##from", &from);
+            InputInt("##from", &global.save.from);
             PopItemWidth();
         }
 
@@ -808,13 +811,13 @@ void save_video(bool *save_movie)
         {
             SameLine();
             PushItemWidth(100);
-            InputInt("##from", &from);
+            InputInt("##from", &global.save.from);
             PopItemWidth();
             SameLine();
             Text(" - ");
             SameLine();
             PushItemWidth(100);
-            InputInt("##to", &to);
+            InputInt("##to", &global.save.to);
             PopItemWidth();
         }
 
@@ -822,8 +825,6 @@ void save_video(bool *save_movie)
         {
             printf("%d\t%d\n", global.movie.width, global.movie.height);
             global.save.started = true;
-            global.save.from = 0;
-            global.save.to = 2001;
             global.save.current = global.save.from;
             OpenPopup("Saving...");
             // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);

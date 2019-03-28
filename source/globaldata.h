@@ -52,7 +52,7 @@ struct window_struct
 
 struct save_video
 {
-    unsigned int from, to, current;
+    int from, to, current;
     bool started;
 };
 
