@@ -50,6 +50,12 @@ struct window_struct
     int margin;
 };
 
+struct save_video
+{
+    unsigned int from, to, current;
+    bool started;
+};
+
 struct zoom_struct
 {
     // 0 - left  upper coner
@@ -194,6 +200,7 @@ struct global_struct
     struct movie_window movie;
     struct graph_window graph;
     struct settings_window settings;
+    struct save_video save;
 
     size_t stat_name_length;
     char **stat_names;

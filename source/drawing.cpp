@@ -779,7 +779,7 @@ void save_video(bool *save_movie)
     static int from = 0, to = global.N_frames;
 
     SetNextWindowSize(ImVec2(375, 200));
-    if (BeginPopupModal("Save video", save_movie)) {
+    if (BeginPopupModal("Save video", save_movie, ImGuiWindowFlags_NoResize)) {
         // choosing filename
 
         Text("Choose one option:");
@@ -821,12 +821,35 @@ void save_video(bool *save_movie)
         if (Button("Save"))
         {
             printf("%d\t%d\n", global.movie.width, global.movie.height);
-            make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
-            *save_movie = false;
+            global.save.started = true;
+            global.save.from = 0;
+            global.save.to = 2001;
+            global.save.current = global.save.from;
+            OpenPopup("Saving...");
+            // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
+            // *save_movie = false;
+        }
+
+        SetNextWindowSize(ImVec2(200, 80));
+        if(BeginPopupModal("Saving...", &global.save.started, ImGuiWindowFlags_NoResize))
+        {
+            ProgressBar((double) global.save.current / (double) (global.save.to - global.save.from), ImVec2(0.0, 0.0));
+            static cv::VideoWriter video("proba.avi", CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
+            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height);
+            video.write(frame);
+            global.save.current ++;
+            if (global.save.current > global.save.to || Button("Cancel##Progress"))
+            {
+                video.release();
+                global.video.play = true;
+                *save_movie = false;
+                global.save.started = false;
+            }
+            EndPopup();
         }
 
         SameLine(); 
-        if (Button("Cancel"))
+        if (Button("Cancel##SetSaveDataPopup"))
         {
             global.video.play = true;
             *save_movie = false;
