@@ -26,9 +26,9 @@ else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S), Linux) #LINUX
 		ECHO_MESSAGE = "Linux"
-		LIBS = -lGL `pkg-config --static --libs glfw3` -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
+		LIBS = -lGL `pkg-config --static --libs glfw3 opencv` -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
 
-		CXXFLAGS += `pkg-config --cflags glfw3`
+		CXXFLAGS += `pkg-config --cflags glfw3 opencv`
 	endif
 
 	ifeq ($(UNAME_S), Darwin) #APPLE

@@ -28,8 +28,8 @@ void set_video_buttons_location();
 bool show_at_least_one_stat_data();
 void show_help_marker(const char*);
 void start_main_loop();
-void trensform_movie_coordinates(double *x, double *y);
-void trensform_distance(double *r);
+void transform_movie_coordinates(double *x, double *y);
+void transform_distance(double *r);
 void zoom();
 
 #endif /* drawing_h */

@@ -20,6 +20,93 @@
 using namespace ImGui;
 using namespace ImGuiFs;
 
+#include <opencv2/opencv.hpp>
+
+cv::Mat make_frame(int current_frame, int width, int height)
+{
+    unsigned int i, n, c;
+    int j;
+    double x, y, r, x1, y1, x2, y2;
+    cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+    
+    // if (global.movie.show_grid_lines)
+    //     draw_grid(draw_list);
+
+    n = 0;
+    if (global.objects != NULL)
+    {
+        for (i = 0; i < global.N_objects; i++)
+        {
+
+            x = global.objects[current_frame][i].x;
+            y = global.objects[current_frame][i].y;
+
+            if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
+                !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
+                // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
+                continue;
+
+            r = global.objects[current_frame][i].R;
+        
+            transform_movie_coordinates(&x, &y);
+            transform_distance(&r);
+            c = global.objects[current_frame][i].color;
+            if (c < 0 || c > 9) c = 0;
+            cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
+            if (global.objects[current_frame][i].R == global.particle_r) 
+            {
+                if (global.movie.show_particles)
+                {
+                    if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                    circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
+                    if (global.movie.trajectories_on)
+                    {
+                        if (n < global.movie.particles_tracked)
+                        {
+                            n ++;
+                            for (j = 0; j < current_frame - 1; j++)
+                            {
+                                x1 = global.objects[j][i].x;
+                                y1 = global.objects[j][i].y;
+
+                                x2 = global.objects[j + 1][i].x;
+                                y2 = global.objects[j + 1][i].y;
+                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                {
+                                    transform_movie_coordinates(&x1, &y1);
+                                    transform_movie_coordinates(&x2, &y2);
+                                    line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else 
+                if (global.movie.show_pinningsites)
+                {
+                    if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                    if (global.movie.show_just_center_pinningsites)
+                        circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
+                    else
+                        circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
+                }
+        }
+    }
+    return frame;
+}
+
+void make_video(const char *videoname, int from, int to, int width, int height)
+{
+    cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
+    for (int i = from; i <= to; i++)
+    {
+        cv::Mat frame = make_frame(i, width, height);
+        video.write(frame);
+    }
+    video.release();
+}
+
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
@@ -223,8 +310,8 @@ void init_movie(bool show_video_window)
 
                 r = global.objects[global.current_frame][i].R;
             
-                trensform_movie_coordinates(&x, &y);
-                trensform_distance(&r);
+                transform_movie_coordinates(&x, &y);
+                transform_distance(&r);
                 c = global.objects[global.current_frame][i].color;
                 if (c < 0 || c > 9) c = 0;
                 ImU32 col32 = ImColor(colors[c]);
@@ -248,8 +335,8 @@ void init_movie(bool show_video_window)
                                     y2 = global.objects[j + 1][i].y;
                                     if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
                                     {
-                                        trensform_movie_coordinates(&x1, &y1);
-                                        trensform_movie_coordinates(&x2, &y2);
+                                        transform_movie_coordinates(&x1, &y1);
+                                        transform_movie_coordinates(&x2, &y2);
                                         draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
                                     }
                                 }
@@ -352,8 +439,8 @@ void draw_grid(ImDrawList *draw_list)
         double y0 = i * dy, y1 = i * dy;
         double x0 = 0.0, x1 = global.SX;
 
-        trensform_movie_coordinates(&x0, &y0);
-        trensform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0);
+        transform_movie_coordinates(&x1, &y1);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -363,8 +450,8 @@ void draw_grid(ImDrawList *draw_list)
         double x0 = i * dx, x1 = i * dx;
         double y0 = 0.0, y1 = global.SY;
 
-        trensform_movie_coordinates(&x0, &y0);
-        trensform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0);
+        transform_movie_coordinates(&x1, &y1);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -691,7 +778,7 @@ void save_video(bool *save_movie)
     static int option = 0;
     static int from = 0, to = global.N_frames;
 
-    SetNextWindowSize(ImVec2(350, 200));
+    SetNextWindowSize(ImVec2(375, 200));
     if (BeginPopupModal("Save video", save_movie)) {
         // choosing filename
 
@@ -731,7 +818,12 @@ void save_video(bool *save_movie)
             PopItemWidth();
         }
 
-        if (Button("Save"));
+        if (Button("Save"))
+        {
+            printf("%d\t%d\n", global.movie.width, global.movie.height);
+            make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
+            *save_movie = false;
+        }
 
         SameLine(); 
         if (Button("Cancel"))
@@ -1226,7 +1318,7 @@ void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned
     *x = *x * x_size / x_max + distance_from_origin;
 }
 
-void trensform_movie_coordinates(double *x, double *y)
+void transform_movie_coordinates(double *x, double *y)
 {
     // translate point to the origin
     *x -= global.movie.zoom.corners[0].x;
@@ -1240,7 +1332,7 @@ void trensform_movie_coordinates(double *x, double *y)
 }
 
 //transforms from simulation unit distances to Opengl units
-void trensform_distance(double *r)
+void transform_distance(double *r)
 {
     *r = *r * global.movie.proportion_x;
 }
