@@ -15,17 +15,34 @@
 #include <time.h>
 #include <cstring>
 
+struct global_struct global;
+
 // http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
 #ifdef WINDOWS
     #include <direct.h>
     #define get_current_dir _getcwd
+    int file_exists(const char *filename)
+    {
+        WIN32_FIND_DATA FindFileData;
+        HANDLE handle = FindFirstFile(filename, &FindFileData) ;
+        int found = handle != INVALID_HANDLE_VALUE;
+        if (found) {
+            FindClose(handle);
+            return 1;
+        } else
+            return 0;
+    }
 #else   // LINUX or MAC
     #include <unistd.h>
     #define get_current_dir getcwd
+    int file_exists(const char *filename)
+    {
+        if (access(filename, F_OK) != -1)
+            return 1;
+        else
+            return 0;
+    }
 #endif
-
-struct global_struct global;
-
 
 void get_current_working_dir(char *current_working_dir) {
     char buff[FILENAME_MAX];
@@ -38,7 +55,7 @@ void get_relative_path_to_project_root(char *path, size_t path_size) {
 
     current_working_dir = (char *) malloc(255);
     get_current_working_dir(current_working_dir);
-    plot = strstr(current_working_dir, "Plotting-using-ImGui");
+    plot = strstr(current_working_dir, global.project_name.c_str());
     strncpy(path, "", 1);
     char *buff, *const end = path + path_size;
     buff = path;
@@ -83,6 +100,8 @@ void initialize_global_data(char *filename)
     // movie data
     global.N_frames = 0;
     global.current_frame = 0;
+
+    global.project_name = "Plotting-using-ImGui";
 }
 
 void reallocate_filenames(size_t len)
@@ -499,6 +518,8 @@ void free_arrays()
 
     if (global.moviefile_error) free(global.moviefile_error);
     if (global.statfile_error)  free(global.statfile_error);
+    
+    free(global.save.filename);
 }
 
 char* remove_extension(const char* filename)

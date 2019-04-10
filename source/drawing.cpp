@@ -12,22 +12,27 @@
 #include <SFML/Graphics/Image.hpp>
 
 #include <stdio.h>
-#include <string.h>
-#include <string>
 #include <GLFW/glfw3.h> // GLuint
+#include <string>
+#include <cstring>
 #include <cmath>
+#include <ctime>
+#include <iostream>
 
 using namespace ImGui;
 using namespace ImGuiFs;
+using namespace std;
 
 #include <opencv2/opencv.hpp>
 
-cv::Mat make_frame(int current_frame, int width, int height)
+cv::Mat make_frame(int current_frame, int width, int height, int padding)
 {
     unsigned int i, n, c;
     int j;
     double x, y, r, x1, y1, x2, y2;
     cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+    ImVec2 draw_pos   = ImVec2(padding, padding),
+           proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
     
     // if (global.movie.show_grid_lines)
     //     draw_grid(draw_list);
@@ -48,7 +53,7 @@ cv::Mat make_frame(int current_frame, int width, int height)
 
             r = global.objects[current_frame][i].R;
         
-            transform_movie_coordinates(&x, &y);
+            transform_movie_coordinates(&x, &y, draw_pos, proportion);
             transform_distance(&r);
             c = global.objects[current_frame][i].color;
             if (c < 0 || c > 9) c = 0;
@@ -73,8 +78,8 @@ cv::Mat make_frame(int current_frame, int width, int height)
                                 y2 = global.objects[j + 1][i].y;
                                 if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
                                 {
-                                    transform_movie_coordinates(&x1, &y1);
-                                    transform_movie_coordinates(&x2, &y2);
+                                    transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+                                    transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
                                     line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
                                 }
                             }
@@ -101,7 +106,7 @@ void make_video(const char *videoname, int from, int to, int width, int height)
     cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
     for (int i = from; i <= to; i++)
     {
-        cv::Mat frame = make_frame(i, width, height);
+        cv::Mat frame = make_frame(i, width, height, global.save.padding);
         video.write(frame);
     }
     video.release();
@@ -232,6 +237,11 @@ int init_window()
     global.save.current = global.save.from = 0;
     global.save.to = global.N_frames;
     global.save.started = false;
+    global.save.padding = 10;
+
+    global.save.filename_length = 255;
+    global.save.filename = (char *) malloc(global.save.filename_length);
+    snprintf(global.save.filename, global.save.filename_length, "../vedios/test.avi");
 
     return 1;
 }
@@ -291,6 +301,8 @@ void init_movie(bool show_video_window)
     int j;
     double x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
+    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
+           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
 
     BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
         global.movie.draw_list = draw_list = GetWindowDrawList();
@@ -314,7 +326,7 @@ void init_movie(bool show_video_window)
 
                 r = global.objects[global.current_frame][i].R;
             
-                transform_movie_coordinates(&x, &y);
+                transform_movie_coordinates(&x, &y, draw_pos, proportion);
                 transform_distance(&r);
                 c = global.objects[global.current_frame][i].color;
                 if (c < 0 || c > 9) c = 0;
@@ -339,8 +351,8 @@ void init_movie(bool show_video_window)
                                     y2 = global.objects[j + 1][i].y;
                                     if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
                                     {
-                                        transform_movie_coordinates(&x1, &y1);
-                                        transform_movie_coordinates(&x2, &y2);
+                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
                                         draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
                                     }
                                 }
@@ -429,6 +441,8 @@ void draw_grid(ImDrawList *draw_list)
     unsigned int i;
     double dx, dy;
     ImU32 color;
+    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
+           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
 
     N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
     N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
@@ -443,8 +457,8 @@ void draw_grid(ImDrawList *draw_list)
         double y0 = i * dy, y1 = i * dy;
         double x0 = 0.0, x1 = global.SX;
 
-        transform_movie_coordinates(&x0, &y0);
-        transform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
+        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -454,8 +468,8 @@ void draw_grid(ImDrawList *draw_list)
         double x0 = i * dx, x1 = i * dx;
         double y0 = 0.0, y1 = global.SY;
 
-        transform_movie_coordinates(&x0, &y0);
-        transform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
+        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -780,10 +794,40 @@ void calculate_coordinates_on_graph(int i)
 void save_video(bool *save_movie)
 {
     static int option = 0;
+    static ImGuiFs::Dialog dlg;
+    size_t length;
+    static bool checked = false;
 
-    SetNextWindowSize(ImVec2(375, 200));
+    SetNextWindowSize(ImVec2(400, 210));
     if (BeginPopupModal("Save video", save_movie, ImGuiWindowFlags_NoResize)) {
-        // choosing filename
+        PushItemFlag(ImGuiItemFlags_Disabled, true);
+        PushItemWidth(275);
+        InputText("##videofilename", global.save.filename, global.save.filename_length);
+        PopItemWidth();
+        PopItemFlag();
+        SameLine();
+        const bool choose_file = Button("Choose file");
+        if (IsItemDeactivated())
+            checked = false;
+
+        dlg.saveFileDialog(choose_file, "../videos", ".avi");
+        if ((length = strlen(dlg.getChosenPath())) > 0 && !checked)
+        {
+            if (length > global.save.filename_length)
+            {
+                global.save.filename_length = ++ length;
+                global.save.filename = (char *) realloc(global.save.filename, length);
+            }
+            strncpy(global.save.filename, check_path(dlg.getChosenPath()), length);
+            global.save.filename[length - 1] = '\0';
+            checked = true;
+        }
+
+        Text("Padding:");
+        SameLine();
+        PushItemWidth(100);
+        InputInt("##videopadding", &global.save.padding);
+        PopItemWidth();
 
         Text("Choose one option:");
         RadioButton("All", &option, 0);
@@ -793,7 +837,7 @@ void save_video(bool *save_movie)
         {
             SameLine();
             PushItemWidth(100);
-            InputInt("##to", &global.save.to);
+            InputInt("##from", &global.save.from);
             PopItemWidth();
         }
 
@@ -802,7 +846,7 @@ void save_video(bool *save_movie)
         {
             SameLine();
             PushItemWidth(100);
-            InputInt("##from", &global.save.from);
+            InputInt("##to", &global.save.to);
             PopItemWidth();
         }
 
@@ -810,33 +854,33 @@ void save_video(bool *save_movie)
         if (option == 3)
         {
             SameLine();
-            PushItemWidth(100);
+            PushItemWidth(80);
             InputInt("##from", &global.save.from);
             PopItemWidth();
             SameLine();
             Text(" - ");
             SameLine();
-            PushItemWidth(100);
+            PushItemWidth(80);
             InputInt("##to", &global.save.to);
             PopItemWidth();
         }
 
-        if (Button("Save"))
+        if (Button("Save##Video"))
         {
-            printf("%d\t%d\n", global.movie.width, global.movie.height);
             global.save.started = true;
             global.save.current = global.save.from;
-            OpenPopup("Saving...");
+            OpenPopup("Saving...##Modal");
             // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
             // *save_movie = false;
         }
 
         SetNextWindowSize(ImVec2(200, 80));
-        if(BeginPopupModal("Saving...", &global.save.started, ImGuiWindowFlags_NoResize))
+        if(BeginPopupModal("Saving...##Modal", &global.save.started, ImGuiWindowFlags_NoResize))
         {
-            ProgressBar((double) global.save.current / (double) (global.save.to - global.save.from), ImVec2(0.0, 0.0));
-            static cv::VideoWriter video("proba.avi", CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
-            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height);
+            ProgressBar((double) (global.save.current - global.save.from) / (double) (global.save.to - global.save.from), ImVec2(-1.0, 0.0));
+            // write to video file I choose
+            static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
+            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height, global.save.padding);
             video.write(frame);
             global.save.current ++;
             if (global.save.current > global.save.to || Button("Cancel##Progress"))
@@ -845,6 +889,9 @@ void save_video(bool *save_movie)
                 global.video.play = true;
                 *save_movie = false;
                 global.save.started = false;
+                COLOR_NOTE;
+                printf("File saved to %s\n", global.save.filename);
+                COLOR_DEFAULT;
             }
             EndPopup();
         }
@@ -1342,7 +1389,7 @@ void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned
     *x = *x * x_size / x_max + distance_from_origin;
 }
 
-void transform_movie_coordinates(double *x, double *y)
+void transform_movie_coordinates(double *x, double *y, ImVec2 draw_pos, ImVec2 proportion)
 {
     // translate point to the origin
     *x -= global.movie.zoom.corners[0].x;
@@ -1351,8 +1398,8 @@ void transform_movie_coordinates(double *x, double *y)
     // global.movie.draw_height / global.movie.proportion_y --> the shown system height
     *y = global.movie.draw_height / global.movie.proportion_y - *y;
 
-    *x = *x * global.movie.proportion_x + global.movie.draw_x;
-    *y = *y * global.movie.proportion_y + global.movie.draw_y;
+    *x = *x * proportion.x + draw_pos.x;
+    *y = *y * proportion.y + draw_pos.y;
 }
 
 //transforms from simulation unit distances to Opengl units
@@ -1428,4 +1475,63 @@ void pop_disable()
 {
     PopItemFlag();
     PopStyleVar();
+}
+
+char *check_path(const char *filename)
+{
+    time_t now = time(NULL);
+    char buff[16];
+    strftime(buff, 16, "%Y%m%d_%H%M%S", localtime(&now));
+
+    char *name, *project;
+    name = (char *) malloc(global.save.filename_length);
+    string default_filename = "../videos/test.avi";
+
+    if (strstr(filename, "../") != NULL)
+    // if in the selectd path there is step to the parent directory we use the default filename, 
+    // because we want to prevent enabling writing in operating systems root
+    {
+        strncpy(name, default_filename.c_str(), default_filename.length());
+        name[default_filename.length()] = '\0';
+    }
+
+    if ((project = const_cast<char*>(strstr(filename, global.project_name.c_str()))) == NULL)
+    // the selected path is above the project root, we do not allow that
+    {
+        strncpy(name, default_filename.c_str(), default_filename.length());
+        name[default_filename.length()] = '\0';
+    }
+    else
+    // the selected path is somewhere in the project root
+    {
+        snprintf(name, global.save.filename_length, "%s%s", global.path, project + global.project_name.length() + 1);
+    }
+
+    char *extension = get_extension(name);
+    if (extension == NULL)
+    {
+        snprintf(&name[strlen(name)], 5, ".avi");
+        extension = get_extension(name);
+    }
+    else
+    {
+        if (strstr(".avi.mp4.mkv.mov.amv.m4p.gif", extension) == NULL)
+        // if selected file does not have one of the extensions mentioned above we use the default filename
+        {
+            strncpy(name, default_filename.c_str(), default_filename.length());
+            name[default_filename.length()] = '\0';
+            extension = get_extension(name);
+        }
+    }
+
+    if (file_exists(name))
+    // if the selected file exists we change it's name to not overwrite the other file
+    {
+        name = remove_extension(name);
+        size_t len = snprintf(NULL, 0, "%s_%s", name, buff);
+        name = (char *) realloc(name, len + 1);
+        snprintf(&name[strlen(name)], 16 + 5, "_%s%s", buff, extension);
+    }
+
+    return name;    
 }
