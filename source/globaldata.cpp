@@ -270,8 +270,8 @@ void read_moviefile_data(bool first_call)
         if (global.statfilename == NULL)
             global.statfilename = (char *) malloc(global.length);
         replace_last(filename, movies_dir, stats_dir);
-        len = snprintf(NULL, 0, "%s.mvi", filename);
-        reallocate_filenames(len);
+        len = snprintf(NULL, 0, "%s.txt", filename);
+        reallocate_filenames(len + 1);
         snprintf(global.statfilename, global.length, "%s.txt", filename);
         read_statisticsfile_data(false);
         free(filename);
@@ -445,7 +445,7 @@ void read_statisticsfile_data(bool first_call)
             global.moviefilename = (char *) malloc(global.length);
         replace_last(filename, stats_dir, movies_dir);
         len = snprintf(NULL, 0, "%s.mvi", filename);
-        reallocate_filenames(len);
+        reallocate_filenames(len + 1);
         snprintf(global.moviefilename, global.length, "%s.mvi", filename);
         read_moviefile_data(false);
         free(filename);
@@ -583,11 +583,12 @@ void replace_last(char *in, const char *to_replace, const char *replace_with)
     len_tail = strlen(tail);
 
     diff = len_to_replace - len_replace_with;
-    if (diff != 0)
+    if (diff < 0)
         in = (char *) realloc(in, diff + len_in + 1);
 
     for (i = n, j = 0; i < n + len_replace_with; i++, j++)
         in[i] = replace_with[j];
+
     for (j = 0; j < len_tail; j++, i++)
         in[i] = tail[j];
     in[i] = '\0';
