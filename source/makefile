@@ -11,13 +11,20 @@ DIRECTORIES = $(OUT_DIR) ../videos
 OBJS = $(addprefix $(OUT_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 DIRECTORIES = $(OUT_DIR)
 INCLUDES = ../imgui ../imgui/examples ../imgui/imguifilesystem ../imgui/sfml /usr/SFML
-CXXFLAGS = $(addprefix -I, $(INCLUDES)) 
+CXXFLAGS = $(addprefix -I, $(INCLUDES)) `pkg-config --cflags glfw3`
+LIBS = `pkg-config --static --libs glfw3 opencv`
+
+opencv=$(shell pkg-config opencv --cflags)
+ifneq (,$(findstring -I, $(opencv)))
+	CXXFLAGS += -DOPENCV
+endif
+
+CXXFLAGS += `pkg-config --cflags opencv`
 
 ifeq ($(OS),Windows_NT) #WINDOWS
 	ECHO_MESSAGE = "Windows"
-	LIBS = -lgdi32 -lopengl32 -limm32 `pkg-config --static --libs sdl2`
+	LIBS += -lgdi32 -lopengl32 -limm32
 
-	CXXFLAGS += `pkg-config --cflags glfw3`
 	# CXXFLAGS += -I../libs/gl3w
 
 	GREEN = "[42m"
@@ -26,16 +33,14 @@ else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S), Linux) #LINUX
 		ECHO_MESSAGE = "Linux"
-		LIBS = -lGL `pkg-config --static --libs glfw3 opencv` -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
-
-		CXXFLAGS += `pkg-config --cflags glfw3 opencv`
+		LIBS += -lGL -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
 	endif
 
 	ifeq ($(UNAME_S), Darwin) #APPLE
 		ECHO_MESSAGE = "Mac OS X"
-		LIBS = -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo `sdl2-config --libs`
+		LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 
-		CXXFLAGS += -I/usr/local/include `pkg-config --cflags glfw3`
+		CXXFLAGS += -I/usr/local/include
 	endif
 
 	GREEN = "\033[0;32m"

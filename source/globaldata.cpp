@@ -18,7 +18,7 @@
 struct global_struct global;
 
 // http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
-#ifdef WINDOWS
+#ifdef _WIN32
     #include <direct.h>
     #define get_current_dir _getcwd
     int file_exists(const char *filename)

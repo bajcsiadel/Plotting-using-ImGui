@@ -19,94 +19,96 @@
 #include <ctime>
 #include <iostream>
 
-#include <opencv2/opencv.hpp>
+#ifdef OPENCV
+    #include <opencv2/opencv.hpp>
 
-cv::Mat make_frame(int current_frame, int width, int height, int padding)
-{
-    unsigned int i, n, c;
-    int j;
-    double x, y, r, x1, y1, x2, y2;
-    cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
-    ImVec2 draw_pos   = ImVec2(padding, padding),
-           proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
-    
-    // if (global.movie.show_grid_lines)
-    //     draw_grid(draw_list);
-
-    n = 0;
-    if (global.objects != NULL)
+    cv::Mat make_frame(int current_frame, int width, int height, int padding)
     {
-        for (i = 0; i < global.N_objects; i++)
-        {
-
-            x = global.objects[current_frame][i].x;
-            y = global.objects[current_frame][i].y;
-
-            if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
-                !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
-                // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
-                continue;
-
-            r = global.objects[current_frame][i].R;
+        unsigned int i, n, c;
+        int j;
+        double x, y, r, x1, y1, x2, y2;
+        cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+        ImVec2 draw_pos   = ImVec2(padding, padding),
+            proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
         
-            transform_movie_coordinates(&x, &y, draw_pos, proportion);
-            transform_distance(&r);
-            c = global.objects[current_frame][i].color;
-            if (c < 0 || c > 9) c = 0;
-            cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
-            if (global.objects[current_frame][i].R == global.particle_r) 
-            {
-                if (global.movie.show_particles)
-                {
-                    if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                    circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
-                    if (global.movie.trajectories_on)
-                    {
-                        if (n < global.movie.particles_tracked)
-                        {
-                            n ++;
-                            for (j = 0; j < current_frame - 1; j++)
-                            {
-                                x1 = global.objects[j][i].x;
-                                y1 = global.objects[j][i].y;
+        // if (global.movie.show_grid_lines)
+        //     draw_grid(draw_list);
 
-                                x2 = global.objects[j + 1][i].x;
-                                y2 = global.objects[j + 1][i].y;
-                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+        n = 0;
+        if (global.objects != NULL)
+        {
+            for (i = 0; i < global.N_objects; i++)
+            {
+
+                x = global.objects[current_frame][i].x;
+                y = global.objects[current_frame][i].y;
+
+                if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
+                    !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
+                    // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
+                    continue;
+
+                r = global.objects[current_frame][i].R;
+            
+                transform_movie_coordinates(&x, &y, draw_pos, proportion);
+                transform_distance(&r);
+                c = global.objects[current_frame][i].color;
+                if (c < 0 || c > 9) c = 0;
+                cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
+                if (global.objects[current_frame][i].R == global.particle_r) 
+                {
+                    if (global.movie.show_particles)
+                    {
+                        if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                        circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
+                        if (global.movie.trajectories_on)
+                        {
+                            if (n < global.movie.particles_tracked)
+                            {
+                                n ++;
+                                for (j = 0; j < current_frame - 1; j++)
                                 {
-                                    transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
-                                    transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
-                                    line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
+                                    x1 = global.objects[j][i].x;
+                                    y1 = global.objects[j][i].y;
+
+                                    x2 = global.objects[j + 1][i].x;
+                                    y2 = global.objects[j + 1][i].y;
+                                    if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                    {
+                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
+                                        line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                else 
+                    if (global.movie.show_pinningsites)
+                    {
+                        if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                        if (global.movie.show_just_center_pinningsites)
+                            circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
+                        else
+                            circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
+                    }
             }
-            else 
-                if (global.movie.show_pinningsites)
-                {
-                    if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                    if (global.movie.show_just_center_pinningsites)
-                        circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
-                    else
-                        circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
-                }
         }
+        return frame;
     }
-    return frame;
-}
 
-void make_video(const char *videoname, int from, int to, int width, int height)
-{
-    cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
-    for (int i = from; i <= to; i++)
+    void make_video(const char *videoname, int from, int to, int width, int height)
     {
-        cv::Mat frame = make_frame(i, width, height, global.save.padding);
-        video.write(frame);
+        cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
+        for (int i = from; i <= to; i++)
+        {
+            cv::Mat frame = make_frame(i, width, height, global.save.padding);
+            video.write(frame);
+        }
+        video.release();
     }
-    video.release();
-}
+#endif
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
@@ -789,6 +791,7 @@ void calculate_coordinates_on_graph(int i)
 
 void save_video(bool *save_movie)
 {
+#ifdef OPENCV
     static int option = 0;
     static ImGuiFs::Dialog dlg;
     size_t length;
@@ -869,7 +872,6 @@ void save_video(bool *save_movie)
             // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
             // *save_movie = false;
         }
-
         ImGui::SetNextWindowSize(ImVec2(200, 80));
         if(ImGui::BeginPopupModal("Saving...##Modal", &global.save.started, ImGuiWindowFlags_NoResize))
         {
@@ -900,6 +902,7 @@ void save_video(bool *save_movie)
         }
         ImGui::EndPopup();
     }
+#endif
 }
 
 void init_settings_menubar()
@@ -933,8 +936,15 @@ void init_settings_menubar()
             }
             if (ImGui::BeginMenu("Save"))
             {
+#ifndef OPENCV
+                push_disable();
+#endif
                 if (ImGui::MenuItem("Movie to avi"))
                     save_movie = true;
+
+#ifndef OPENCV
+                pop_disable();
+#endif
                 ImGui::MenuItem("Graph");
                 ImGui::EndMenu();
             }
