@@ -12,14 +12,14 @@ OBJS = $(addprefix $(OUT_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES))))
 DIRECTORIES = $(OUT_DIR)
 INCLUDES = ../imgui ../imgui/examples ../imgui/imguifilesystem ../imgui/sfml /usr/SFML
 CXXFLAGS = $(addprefix -I, $(INCLUDES)) `pkg-config --cflags glfw3`
-LIBS = `pkg-config --static --libs glfw3 opencv`
+LIBS = `pkg-config --static --libs glfw3`
 
 opencv=$(shell pkg-config opencv --cflags)
 ifneq (,$(findstring -I, $(opencv)))
 	CXXFLAGS += -DOPENCV
+	CXXFLAGS += `pkg-config --cflags opencv`
+	LIBS += `pkg-config --static --libs opencv`
 endif
-
-CXXFLAGS += `pkg-config --cflags opencv`
 
 ifeq ($(OS),Windows_NT) #WINDOWS
 	ECHO_MESSAGE = "Windows"
