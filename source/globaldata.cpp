@@ -411,7 +411,7 @@ void read_statisticsfile_data(bool first_call)
             fgets(buff, buff_size, global.statfile);
             // there is an extra space at the end of the row
             buff[strlen(buff) - 2] = '\0';
-            global.stats[global.N_stats].data = (float *) malloc( global.number_of_columns * sizeof(float));
+            global.stats[global.N_stats].data = (double *) malloc( global.number_of_columns * sizeof(double));
             size_t n = global.number_of_columns - 1;
             // there is a space at the begining of the row
             while ((ptr = strrchr(buff, ' ')) != NULL)

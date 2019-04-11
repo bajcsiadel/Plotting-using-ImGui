@@ -704,11 +704,11 @@ void init_graph_window(bool *show)
                             if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(global.graph.line_colors[j]), 0.5);
                         }
 
-                            if (t_frame > t1 && t_frame <= t2)
-                            {
-                                time_index = i;  // t_frame value is between (i - 1) and i
-                                draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + size_y + 15), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
-                            }
+                        if (t_frame > t1 && t_frame <= t2)
+                        {
+                            time_index = i;  // t_frame value is between (i - 1) and i
+                            draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + size_y + 15), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        }
                     }
 
                 free(data1);

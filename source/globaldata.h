@@ -32,15 +32,15 @@ const ImVec4 colors[] = {
 struct object_struct
 {
     unsigned int color;
-    float x;
-    float y;
-    float R;
+    double x;
+    double y;
+    double R;
 };
 
 struct stat_struct
 {
     unsigned int time;
-    float *data;
+    double *data;
 };
 
 struct window_struct
@@ -107,7 +107,7 @@ struct movie_window
     unsigned int draw_width;
     unsigned int draw_height;
 
-    float proportion_x, proportion_y;
+    double proportion_x, proportion_y;
 
     bool trajectories_on;
     unsigned int particles_tracked;
@@ -143,7 +143,7 @@ struct graph_window
     bool *show;
 
     unsigned int t_min, t_max;
-    float min, max; // min and max values on the y axis
+    double min, max; // min and max values on the y axis
 
     ImVec4 *line_colors;
 };
@@ -174,8 +174,8 @@ struct global_struct
     double SX;
     double SY;
 
-    float radius_particle;
-    float radius_vertex;
+    double radius_particle;
+    double radius_vertex;
 
     char *moviefilename;
     FILE *moviefile;
