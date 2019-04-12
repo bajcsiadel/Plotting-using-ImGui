@@ -1,24 +1,34 @@
+# https://stackoverflow.com/questions/5618615/check-if-a-program-exists-from-a-makefile
+# https://stackoverflow.com/questions/3774568/makefile-issue-smart-way-to-scan-directory-tree-for-c-files
 EXE = plot
-SOURCES = main.cpp globaldata.cpp drawing.cpp
-SOURCES += ../imgui/examples/imgui_impl_glfw.cpp ../imgui/examples/imgui_impl_opengl2.cpp
-SOURCES += ../imgui/sfml/imgui-SFML.cpp
-SOURCES += ../imgui/imgui.cpp ../imgui/imgui_demo.cpp ../imgui/imgui_draw.cpp ../imgui/imgui_widgets.cpp ../imgui/imguifilesystem/imguifilesystem.cpp
+IMGUI = ../imgui
+IMGUI_IMPL = $(IMGUI)/examples
+# selecting .cpp files from current folder, which do not contain the word test
+SOURCES = $(shell ls | grep -P '^(?!.*?test).*\.cpp')
+SOURCES += $(IMGUI_IMPL)/imgui_impl_glfw.cpp $(IMGUI_IMPL)/imgui_impl_opengl2.cpp
+SOURCES += $(IMGUI)/sfml/imgui-SFML.cpp
+SOURCES += $(IMGUI)/imgui.cpp $(IMGUI)/imgui_demo.cpp $(IMGUI)/imgui_draw.cpp $(IMGUI)/imgui_widgets.cpp $(IMGUI)/imguifilesystem/imguifilesystem.cpp
 DST_SRC = $(addprefix $(OUT_DIR), $(notdir $(SOURCES)))
-HEADERS = globaldata.h drawing.h color.h
+# getting files with .h extension form current folder
+HEADERS = $(wildcard *.h)
 MKDIR_P = mkdir -p
 OUT_DIR = ../build/
 DIRECTORIES = $(OUT_DIR) ../videos
 OBJS = $(addprefix $(OUT_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 DIRECTORIES = $(OUT_DIR)
-INCLUDES = ../imgui ../imgui/examples ../imgui/imguifilesystem ../imgui/sfml /usr/SFML
+INCLUDES = $(IMGUI) $(IMGUI_IMPL) $(IMGUI)/imguifilesystem $(IMGUI)/sfml /usr/SFML
 CXXFLAGS = $(addprefix -I, $(INCLUDES)) `pkg-config --cflags glfw3`
 LIBS = `pkg-config --static --libs glfw3`
 
-opencv=$(shell pkg-config opencv --cflags)
+# if opencv is installed set OPENCV as c++ processor variable 
+opencv=$(shell pkg-config opencv --cflags 2> /dev/null)
 ifneq (,$(findstring -I, $(opencv)))
 	CXXFLAGS += -DOPENCV
 	CXXFLAGS += `pkg-config --cflags opencv`
 	LIBS += `pkg-config --static --libs opencv`
+	OK = ok
+else
+	OK = not 
 endif
 
 ifeq ($(OS),Windows_NT) #WINDOWS
@@ -46,14 +56,20 @@ else
 	GREEN = "\033[0;32m"
 	DEFAULT = "\033[0m"
 endif
+
 CXXFLAGS += -Wall -Wformat -Wunused-variable -std=c++11
 CFLAGS = $(CXXFLAGS)
 
 $(OUT_DIR)%.o: $(OUT_DIR)%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-all: clean directories copy_all $(EXE) delete_copies
+all: clean create
+
+create: directories copy_all $(EXE) delete_copies
 	@echo $(GREEN)"Build complete for $(ECHO_MESSAGE)\n"$(DEFAULT)
+	@if [ $(OK) != ok ]; then \
+		echo "You have to install openCV3 separately if you want to use the save function\n"; \
+	fi
 
 $(EXE): $(HEADERS) $(OBJS)
 	@echo ""
@@ -76,9 +92,20 @@ delete_copies:
 
 .PHONY: directories
 
-directories: ${DIRECTORIES}
+directories: $(DIRECTORIES)
 
-${DIRECTORIES}:
+$(DIRECTORIES):
 	@echo $(GREEN)"Creating directories"$(DEFAULT)
-	${MKDIR_P} ${DIRECTORIES}
+	$(MKDIR_P} $(DIRECTORIES)
 	@echo ""
+
+install: install_libraries create
+
+install_libraries:
+	sudo apt-get update
+	sudo apt-get install pkg-config
+	sudo apt-get install libglfw3
+	sudo apt-get install libglfw3-dev
+	@echo $(GREEN)"Libraried has been installed!\n"$(DEFAULT)
+
+uninstall: clean
