@@ -12,19 +12,21 @@ DST_SRC = $(addprefix $(OUT_DIR), $(notdir $(SOURCES)))
 # getting files with .h extension form current folder
 HEADERS = $(wildcard *.h)
 MKDIR_P = mkdir -p
+# setting output directory
 OUT_DIR = ../build/
 DIRECTORIES = $(OUT_DIR) ../videos
+# set objectfile names from source files
 OBJS = $(addprefix $(OUT_DIR), $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
-DIRECTORIES = $(OUT_DIR)
 INCLUDES = $(IMGUI) $(IMGUI_IMPL) $(IMGUI)/imguifilesystem $(IMGUI)/sfml /usr/SFML
-CXXFLAGS = $(addprefix -I, $(INCLUDES)) `pkg-config --cflags glfw3`
+CXXFLAGS = $(addprefix -I, $(INCLUDES)) `pkg-config --static --cflags glfw3`
 LIBS = `pkg-config --static --libs glfw3`
 
 # if opencv is installed set OPENCV as c++ processor variable 
+# 2> /dev/null redirecting output if opencv is not installed
 opencv=$(shell pkg-config opencv --cflags 2> /dev/null)
 ifneq (,$(findstring -I, $(opencv)))
+	CXXFLAGS += `pkg-config --static --cflags opencv`
 	CXXFLAGS += -DOPENCV
-	CXXFLAGS += `pkg-config --cflags opencv`
 	LIBS += `pkg-config --static --libs opencv`
 	OK = ok
 else
@@ -60,9 +62,11 @@ endif
 CXXFLAGS += -Wall -Wformat -Wunused-variable -std=c++11
 CFLAGS = $(CXXFLAGS)
 
+# creating needed object files to compile $(EXE)
 $(OUT_DIR)%.o: $(OUT_DIR)%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+# this will be executed if we write in terminal just make
 all: clean create
 
 create: directories copy_all $(EXE) delete_copies
@@ -76,31 +80,40 @@ $(EXE): $(HEADERS) $(OBJS)
 	$(CXX) -o $(OUT_DIR)$@ $^ $(CXXFLAGS) $(LIBS)
 	@echo ""
 
+# delete existing binary- and object files
+# $(OUT_DIR)$(EXE) - binary created on Linux or Apple
+# $(OUT_DIR)$(EXE).exe - binary created on Windows
 clean:
 	@echo $(GREEN)"Remove binary files"$(DEFAULT)
 	rm -f $(OUT_DIR)$(EXE) $(OUT_DIR)$(EXE).exe $(OBJS)
 	@echo ""
 
+# copying source and header files to the target directory, because it is easier to write a rule to creating object from source file
 copy_all:
 	@for src in $(SOURCES) $(HEADERS); \
 	do \
 		cp $$src $(OUT_DIR)$$(basename $$src); \
 	done
 
+# we do not really need these copies just for creating the objects, so after that we delete them
 delete_copies:
 	@rm -f $(OUT_DIR)*.cpp $(OUT_DIR)*.h
 
+# execute rule directories if needed (if directories does not exist)
 .PHONY: directories
 
 directories: $(DIRECTORIES)
 
+# creating the given directory if does not exist 
 $(DIRECTORIES):
 	@echo $(GREEN)"Creating directories"$(DEFAULT)
-	$(MKDIR_P} $(DIRECTORIES)
+	$(MKDIR_P) $(DIRECTORIES)
 	@echo ""
 
+# this will be called when typing to the terminal make install
 install: install_libraries create
 
+# this will install the dependent libraries besides compiling the code
 install_libraries:
 	sudo apt-get update
 	sudo apt-get install pkg-config
