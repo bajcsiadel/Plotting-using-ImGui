@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <GLFW/glfw3.h>
+#include <string>
 
 #include "imgui.h"
 #include "imguifilesystem.h"
@@ -31,15 +32,15 @@ const ImVec4 colors[] = {
 struct object_struct
 {
     unsigned int color;
-    float x;
-    float y;
-    float R;
+    double x;
+    double y;
+    double R;
 };
 
 struct stat_struct
 {
     unsigned int time;
-    float *data;
+    double *data;
 };
 
 struct window_struct
@@ -53,7 +54,11 @@ struct window_struct
 struct save_video
 {
     int from, to, current;
+    int padding;
     bool started;
+
+    char *filename;
+    size_t filename_length;
 };
 
 struct zoom_struct
@@ -102,7 +107,7 @@ struct movie_window
     unsigned int draw_width;
     unsigned int draw_height;
 
-    float proportion_x, proportion_y;
+    double proportion_x, proportion_y;
 
     bool trajectories_on;
     unsigned int particles_tracked;
@@ -138,7 +143,7 @@ struct graph_window
     bool *show;
 
     unsigned int t_min, t_max;
-    float min, max; // min and max values on the y axis
+    double min, max; // min and max values on the y axis
 
     ImVec4 *line_colors;
 };
@@ -159,6 +164,7 @@ struct global_struct
 {
     char *path;
     size_t path_length;
+    std::string project_name;
 
     //OpenGl window size
     unsigned int Windowsize_x; //window size in pixels x direction
@@ -168,8 +174,8 @@ struct global_struct
     double SX;
     double SY;
 
-    float radius_particle;
-    float radius_vertex;
+    double radius_particle;
+    double radius_vertex;
 
     char *moviefilename;
     FILE *moviefile;
@@ -210,10 +216,9 @@ struct global_struct
 
 extern struct global_struct global;
 
-void reset_zoom();
 void reallocate_filenames(size_t);
-char *remove_extension(const char *);
-char *get_extension(const char *);
+char *remove_extension(const char *filename);
+char *get_extension(const char *filename);
 char *substr(const char *, int, int);
 void replace_last(char *, const char *, const char *);
 void initialize_global_data(char *);
@@ -227,5 +232,7 @@ void read_moviefile_data(bool = true);
 void read_statisticsfile_data(bool = true);
 
 void write_frame_data_to_file();
+
+int file_exists(const char *filename);
 
 #endif /* globaldata_h */

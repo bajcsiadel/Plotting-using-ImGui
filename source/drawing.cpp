@@ -12,100 +12,103 @@
 #include <SFML/Graphics/Image.hpp>
 
 #include <stdio.h>
-#include <string.h>
-#include <string>
 #include <GLFW/glfw3.h> // GLuint
+#include <string>
+#include <cstring>
 #include <cmath>
+#include <ctime>
+#include <iostream>
 
-using namespace ImGui;
-using namespace ImGuiFs;
+#ifdef OPENCV
+    #include <opencv2/opencv.hpp>
 
-#include <opencv2/opencv.hpp>
-
-cv::Mat make_frame(int current_frame, int width, int height)
-{
-    unsigned int i, n, c;
-    int j;
-    double x, y, r, x1, y1, x2, y2;
-    cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
-    
-    // if (global.movie.show_grid_lines)
-    //     draw_grid(draw_list);
-
-    n = 0;
-    if (global.objects != NULL)
+    cv::Mat make_frame(int current_frame, int width, int height, int padding)
     {
-        for (i = 0; i < global.N_objects; i++)
-        {
-
-            x = global.objects[current_frame][i].x;
-            y = global.objects[current_frame][i].y;
-
-            if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
-                !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
-                // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
-                continue;
-
-            r = global.objects[current_frame][i].R;
+        unsigned int i, n, c;
+        int j;
+        double x, y, r, x1, y1, x2, y2;
+        cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+        ImVec2 draw_pos   = ImVec2(padding, padding),
+            proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
         
-            transform_movie_coordinates(&x, &y);
-            transform_distance(&r);
-            c = global.objects[current_frame][i].color;
-            if (c < 0 || c > 9) c = 0;
-            cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
-            if (global.objects[current_frame][i].R == global.particle_r) 
-            {
-                if (global.movie.show_particles)
-                {
-                    if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                    circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
-                    if (global.movie.trajectories_on)
-                    {
-                        if (n < global.movie.particles_tracked)
-                        {
-                            n ++;
-                            for (j = 0; j < current_frame - 1; j++)
-                            {
-                                x1 = global.objects[j][i].x;
-                                y1 = global.objects[j][i].y;
+        // if (global.movie.show_grid_lines)
+        //     draw_grid(draw_list);
 
-                                x2 = global.objects[j + 1][i].x;
-                                y2 = global.objects[j + 1][i].y;
-                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+        n = 0;
+        if (global.objects != NULL)
+        {
+            for (i = 0; i < global.N_objects; i++)
+            {
+
+                x = global.objects[current_frame][i].x;
+                y = global.objects[current_frame][i].y;
+
+                if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
+                    !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
+                    // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
+                    continue;
+
+                r = global.objects[current_frame][i].R;
+            
+                transform_movie_coordinates(&x, &y, draw_pos, proportion);
+                transform_distance(&r);
+                c = global.objects[current_frame][i].color;
+                if (c < 0 || c > 9) c = 0;
+                cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
+                if (global.objects[current_frame][i].R == global.particle_r) 
+                {
+                    if (global.movie.show_particles)
+                    {
+                        if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                        circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
+                        if (global.movie.trajectories_on)
+                        {
+                            if (n < global.movie.particles_tracked)
+                            {
+                                n ++;
+                                for (j = 0; j < current_frame - 1; j++)
                                 {
-                                    transform_movie_coordinates(&x1, &y1);
-                                    transform_movie_coordinates(&x2, &y2);
-                                    line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
+                                    x1 = global.objects[j][i].x;
+                                    y1 = global.objects[j][i].y;
+
+                                    x2 = global.objects[j + 1][i].x;
+                                    y2 = global.objects[j + 1][i].y;
+                                    if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                    {
+                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
+                                        line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                else 
+                    if (global.movie.show_pinningsites)
+                    {
+                        if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
+                        if (global.movie.show_just_center_pinningsites)
+                            circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
+                        else
+                            circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
+                    }
             }
-            else 
-                if (global.movie.show_pinningsites)
-                {
-                    if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                    if (global.movie.show_just_center_pinningsites)
-                        circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
-                    else
-                        circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
-                }
         }
+        return frame;
     }
-    return frame;
-}
 
-void make_video(const char *videoname, int from, int to, int width, int height)
-{
-    cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
-    for (int i = from; i <= to; i++)
+    void make_video(const char *videoname, int from, int to, int width, int height)
     {
-        cv::Mat frame = make_frame(i, width, height);
-        video.write(frame);
+        cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
+        for (int i = from; i <= to; i++)
+        {
+            cv::Mat frame = make_frame(i, width, height, global.save.padding);
+            video.write(frame);
+        }
+        video.release();
     }
-    video.release();
-}
+#endif
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
@@ -143,8 +146,8 @@ int init_window()
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    CreateContext();
-    ImGuiIO io = GetIO(); (void)io;
+    ImGui::CreateContext();
+    ImGuiIO io = ImGui::GetIO(); (void)io;
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     
     // Setup Platform/Renderer bindings
@@ -152,7 +155,7 @@ int init_window()
     ImGui_ImplOpenGL2_Init();
 
     // Setup Style
-    StyleColorsLight();
+    ImGui::StyleColorsLight();
 
     // window data
     global.window.background_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -232,6 +235,11 @@ int init_window()
     global.save.current = global.save.from = 0;
     global.save.to = global.N_frames;
     global.save.started = false;
+    global.save.padding = 10;
+
+    global.save.filename_length = 255;
+    global.save.filename = (char *) malloc(global.save.filename_length);
+    snprintf(global.save.filename, global.save.filename_length, "../vedios/test.avi");
 
     return 1;
 }
@@ -291,9 +299,11 @@ void init_movie(bool show_video_window)
     int j;
     double x, y, r, x1, y1, x2, y2;
     ImDrawList *draw_list;
+    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
+           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
 
-    BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
-        global.movie.draw_list = draw_list = GetWindowDrawList();
+    ImGui::BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
+        global.movie.draw_list = draw_list = ImGui::GetWindowDrawList();
         // global.movie.draw_list->AddRect(ImVec2(global.movie.draw_x, global.movie.draw_y), ImVec2(global.movie.draw_x + global.movie.draw_width, global.movie.draw_y + global.movie.draw_height), (ImU32) ImColor(colors[0]));
 
         if (global.movie.show_grid_lines)
@@ -314,7 +324,7 @@ void init_movie(bool show_video_window)
 
                 r = global.objects[global.current_frame][i].R;
             
-                transform_movie_coordinates(&x, &y);
+                transform_movie_coordinates(&x, &y, draw_pos, proportion);
                 transform_distance(&r);
                 c = global.objects[global.current_frame][i].color;
                 if (c < 0 || c > 9) c = 0;
@@ -339,8 +349,8 @@ void init_movie(bool show_video_window)
                                     y2 = global.objects[j + 1][i].y;
                                     if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
                                     {
-                                        transform_movie_coordinates(&x1, &y1);
-                                        transform_movie_coordinates(&x2, &y2);
+                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
                                         draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
                                     }
                                 }
@@ -360,18 +370,18 @@ void init_movie(bool show_video_window)
             }
         }
         zoom();
-    EndChild();
+    ImGui::EndChild();
 }
 
 void init_video_window(bool *show_video_window)
 {
-    SetNextWindowPos(ImVec2(global.window.margin, global.window.margin));
-    SetNextWindowSize(ImVec2(global.video.width, global.video.height));
-    Begin("Video", show_video_window,  
+    ImGui::SetNextWindowPos(ImVec2(global.window.margin, global.window.margin));
+    ImGui::SetNextWindowSize(ImVec2(global.video.width, global.video.height));
+    ImGui::Begin("Video", show_video_window,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
         // add_file_location(global.moviefilename);
-    Text("%f x %f", GetIO().MousePos.x, GetIO().MousePos.y);
+        ImGui::Text("%f x %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
         init_movie(true);
         
         GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
@@ -383,42 +393,42 @@ void init_video_window(bool *show_video_window)
         read_image(&rewind_image, global.video.rewind_img_location);
         read_image(&fastforward_image, global.video.fastforward_img_location);
         
-        PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
-        PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
 
-        Separator();
-        ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
-        if (IsItemClicked())
+        ImGui::Separator();
+        ImGui::ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (ImGui::IsItemClicked())
             global.current_frame = 0;
-        SameLine();
+        ImGui::SameLine();
 
-        ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
-        if (IsItemClicked())
+        ImGui::ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (ImGui::IsItemClicked())
             global.video.step = (global.video.step != 1 ? global.video.step / 2 : global.video.step);
-        SameLine();
+        ImGui::SameLine();
 
         if (global.video.play) 
-            ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
+            ImGui::ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
         else
-            ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
-        if (IsItemClicked())
+            ImGui::ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (ImGui::IsItemClicked())
             global.video.play = !global.video.play;
-        SameLine();
+        ImGui::SameLine();
 
-        ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
-        if (IsItemClicked())
+        ImGui::ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (ImGui::IsItemClicked())
             global.video.step = (global.video.step < 128 ? global.video.step * 2 : global.video.step);
-        SameLine();
+        ImGui::SameLine();
 
-        ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
-        if (IsItemClicked())
+        ImGui::ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
+        if (ImGui::IsItemClicked())
             global.current_frame = global.N_frames - 1;
-        SameLine();
-        PopStyleColor(2);
+        ImGui::SameLine();
+        ImGui::PopStyleColor(2);
 
-        PushItemWidth(-50);
-        SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
-    End();
+        ImGui::PushItemWidth(-50);
+        ImGui::SliderInt("Frames", &global.current_frame, 0, global.N_frames - 1);
+    ImGui::End();
     if (global.video.play)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
@@ -429,6 +439,8 @@ void draw_grid(ImDrawList *draw_list)
     unsigned int i;
     double dx, dy;
     ImU32 color;
+    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
+           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
 
     N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
     N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
@@ -443,8 +455,8 @@ void draw_grid(ImDrawList *draw_list)
         double y0 = i * dy, y1 = i * dy;
         double x0 = 0.0, x1 = global.SX;
 
-        transform_movie_coordinates(&x0, &y0);
-        transform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
+        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -454,8 +466,8 @@ void draw_grid(ImDrawList *draw_list)
         double x0 = i * dx, x1 = i * dx;
         double y0 = 0.0, y1 = global.SY;
 
-        transform_movie_coordinates(&x0, &y0);
-        transform_movie_coordinates(&x1, &y1);
+        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
+        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
 
         draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
     }
@@ -606,9 +618,9 @@ void init_graph_window(bool *show)
     data1 = (double *) malloc(global.number_of_columns * sizeof(double));
     data2 = (double *) malloc(global.number_of_columns * sizeof(double));
     
-    SetNextWindowPos(ImVec2(poz_x, poz_y));
-    SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
-    Begin("Graph", show,  
+    ImGui::SetNextWindowPos(ImVec2(poz_x, poz_y));
+    ImGui::SetNextWindowSize(ImVec2(global.graph.width, global.graph.height));
+    ImGui::Begin("Graph", show,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
         len = add_file_location(global.statfilename);
@@ -619,16 +631,16 @@ void init_graph_window(bool *show)
         size_y -= round(((double) len * 10) / (size_x - 2 * global.window.margin)) * 13.5;
         // substracting the labels height
         size_y -= estimated_label_row_number() * 13.5;
-        draw_list = GetWindowDrawList();
-        BeginChild("##diagram", ImVec2(size_x, size_y), true);
-            draw_list = GetWindowDrawList();
+        draw_list = ImGui::GetWindowDrawList();
+        ImGui::BeginChild("##diagram", ImVec2(size_x, size_y), true);
+            draw_list = ImGui::GetWindowDrawList();
             
             if (global.stats != NULL)
             {
                 // poz_x += 60;
                 // poz_y += 52;
-                poz_x = GetWindowPos().x + 50;
-                poz_y = GetWindowPos().y + global.window.margin / 2;
+                poz_x = ImGui::GetWindowPos().x + 50;
+                poz_y = ImGui::GetWindowPos().y + global.window.margin / 2;
                 size_y -= global.window.margin;
                 size_x -= 60;
                 
@@ -690,11 +702,11 @@ void init_graph_window(bool *show)
                             if (global.graph.show[j]) draw_list->AddLine(ImVec2(t1, (int) data1[j]), ImVec2(t2, (int) data2[j]), ImColor(global.graph.line_colors[j]), 0.5);
                         }
 
-                            if (t_frame > t1 && t_frame <= t2)
-                            {
-                                time_index = i;  // t_frame value is between (i - 1) and i
-                                draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + size_y + 15), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
-                            }
+                        if (t_frame > t1 && t_frame <= t2)
+                        {
+                            time_index = i;  // t_frame value is between (i - 1) and i
+                            draw_list->AddLine(ImVec2(t_frame, poz_y - 15), ImVec2(t_frame, poz_y + size_y + 15), ImColor(ImVec4(0.2705, 0.9568, 0.2588, 1.0)), 1.5);
+                        }
                     }
 
                 free(data1);
@@ -718,9 +730,9 @@ void init_graph_window(bool *show)
                         }
                     }
             }
-        EndChild();
+        ImGui::EndChild();
         if (global.stats != NULL && time_index != -1) calculate_coordinates_on_graph(time_index);
-    End();
+    ImGui::End();
 }
 
 void calculate_coordinates_on_graph(int i)
@@ -764,10 +776,10 @@ void calculate_coordinates_on_graph(int i)
             len += snprintf(text, 100, "%s = %2.8f\t", global.stat_names[j], values[j]);
             len += 10; // space between the words
             if (len * 7.5 < global.graph.width)
-                SameLine();
+                ImGui::SameLine();
             else
                 len = 0;
-            TextColored(global.graph.line_colors[j], "%s", text);
+            ImGui::TextColored(global.graph.line_colors[j], "%s", text);
                         
             free(text);
         }
@@ -779,84 +791,118 @@ void calculate_coordinates_on_graph(int i)
 
 void save_video(bool *save_movie)
 {
+#ifdef OPENCV
     static int option = 0;
+    static ImGuiFs::Dialog dlg;
+    size_t length;
+    static bool checked = false;
 
-    SetNextWindowSize(ImVec2(375, 200));
-    if (BeginPopupModal("Save video", save_movie, ImGuiWindowFlags_NoResize)) {
-        // choosing filename
+    ImGui::SetNextWindowSize(ImVec2(400, 210));
+    if (ImGui::BeginPopupModal("Save video", save_movie, ImGuiWindowFlags_NoResize)) {
+        ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+        ImGui::PushItemWidth(275);
+        ImGui::InputText("##videofilename", global.save.filename, global.save.filename_length);
+        ImGui::PopItemWidth();
+        ImGui::PopItemFlag();
+        ImGui::SameLine();
+        const bool choose_file = ImGui::Button("Choose file");
+        if (ImGui::IsItemDeactivated())
+            checked = false;
 
-        Text("Choose one option:");
-        RadioButton("All", &option, 0);
+        dlg.saveFileDialog(choose_file, "../videos", ".avi");
+        if ((length = strlen(dlg.getChosenPath())) > 0 && !checked)
+        {
+            if (length > global.save.filename_length)
+            {
+                global.save.filename_length = ++ length;
+                global.save.filename = (char *) realloc(global.save.filename, length);
+            }
+            strncpy(global.save.filename, check_path(dlg.getChosenPath()), length);
+            global.save.filename[length - 1] = '\0';
+            checked = true;
+        }
 
-        RadioButton("From: ", &option, 1);
+        ImGui::Text("Padding:");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(100);
+        ImGui::InputInt("##videopadding", &global.save.padding);
+        ImGui::PopItemWidth();
+
+        ImGui::Text("Choose one option:");
+        ImGui::RadioButton("All", &option, 0);
+
+        ImGui::RadioButton("From: ", &option, 1);
         if (option == 1)
         {
-            SameLine();
-            PushItemWidth(100);
-            InputInt("##to", &global.save.to);
-            PopItemWidth();
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("##from", &global.save.from);
+            ImGui::PopItemWidth();
         }
 
-        RadioButton("Till: ", &option, 2);
+        ImGui::RadioButton("Till: ", &option, 2);
         if (option == 2)
         {
-            SameLine();
-            PushItemWidth(100);
-            InputInt("##from", &global.save.from);
-            PopItemWidth();
+            ImGui::SameLine();
+            ImGui::PushItemWidth(100);
+            ImGui::InputInt("##to", &global.save.to);
+            ImGui::PopItemWidth();
         }
 
-        RadioButton("Intervall: ", &option, 3);
+        ImGui::RadioButton("Intervall: ", &option, 3);
         if (option == 3)
         {
-            SameLine();
-            PushItemWidth(100);
-            InputInt("##from", &global.save.from);
-            PopItemWidth();
-            SameLine();
-            Text(" - ");
-            SameLine();
-            PushItemWidth(100);
-            InputInt("##to", &global.save.to);
-            PopItemWidth();
+            ImGui::SameLine();
+            ImGui::PushItemWidth(80);
+            ImGui::InputInt("##from", &global.save.from);
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            ImGui::Text(" - ");
+            ImGui::SameLine();
+            ImGui::PushItemWidth(80);
+            ImGui::InputInt("##to", &global.save.to);
+            ImGui::PopItemWidth();
         }
 
-        if (Button("Save"))
+        if (ImGui::Button("Save##Video"))
         {
-            printf("%d\t%d\n", global.movie.width, global.movie.height);
             global.save.started = true;
             global.save.current = global.save.from;
-            OpenPopup("Saving...");
+            ImGui::OpenPopup("Saving...##Modal");
             // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
             // *save_movie = false;
         }
-
-        SetNextWindowSize(ImVec2(200, 80));
-        if(BeginPopupModal("Saving...", &global.save.started, ImGuiWindowFlags_NoResize))
+        ImGui::SetNextWindowSize(ImVec2(200, 80));
+        if(ImGui::BeginPopupModal("Saving...##Modal", &global.save.started, ImGuiWindowFlags_NoResize))
         {
-            ProgressBar((double) global.save.current / (double) (global.save.to - global.save.from), ImVec2(0.0, 0.0));
-            static cv::VideoWriter video("proba.avi", CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
-            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height);
+            ImGui::ProgressBar((double) (global.save.current - global.save.from) / (double) (global.save.to - global.save.from), ImVec2(-1.0, 0.0));
+            // write to video file I choose
+            static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
+            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height, global.save.padding);
             video.write(frame);
             global.save.current ++;
-            if (global.save.current > global.save.to || Button("Cancel##Progress"))
+            if (global.save.current > global.save.to || ImGui::Button("Cancel##Progress"))
             {
                 video.release();
                 global.video.play = true;
                 *save_movie = false;
                 global.save.started = false;
+                COLOR_NOTE;
+                printf("File saved to %s\n", global.save.filename);
+                COLOR_DEFAULT;
             }
-            EndPopup();
+            ImGui::EndPopup();
         }
 
-        SameLine(); 
-        if (Button("Cancel##SetSaveDataPopup"))
+        ImGui::SameLine(); 
+        if (ImGui::Button("Cancel##SetSaveDataPopup"))
         {
             global.video.play = true;
             *save_movie = false;
         }
-        EndPopup();
+        ImGui::EndPopup();
     }
+#endif
 }
 
 void init_settings_menubar()
@@ -869,51 +915,58 @@ void init_settings_menubar()
     open_movie = false;
     open_stats = false;
     
-    if (BeginMenuBar())
+    if (ImGui::BeginMenuBar())
     {
-        if (BeginMenu("File"))
+        if (ImGui::BeginMenu("File"))
         {
-            if (BeginMenu("Open"))
+            if (ImGui::BeginMenu("Open"))
             {
-                if (MenuItem("Movie file", "CTRL+M")) 
+                if (ImGui::MenuItem("Movie file", "CTRL+M")) 
                 {
                     open_movie = true;
                     global.settings.open = 0;
                 }
                 
-                if (MenuItem("Statistics file", "CTRL+T"))
+                if (ImGui::MenuItem("Statistics file", "CTRL+T"))
                 {
                     open_stats = true;
                     global.settings.open = 1;
                 }
-                EndMenu();
+                ImGui::EndMenu();
             }
-            if (BeginMenu("Save"))
+            if (ImGui::BeginMenu("Save"))
             {
-                if (MenuItem("Movie to avi"))
+#ifndef OPENCV
+                push_disable();
+#endif
+                if (ImGui::MenuItem("Movie to avi"))
                     save_movie = true;
-                MenuItem("Graph");
-                EndMenu();
+
+#ifndef OPENCV
+                pop_disable();
+#endif
+                ImGui::MenuItem("Graph");
+                ImGui::EndMenu();
             }
-            EndMenu();
+            ImGui::EndMenu();
         }
-        if (BeginMenu("Edit"))
+        if (ImGui::BeginMenu("Edit"))
         {
-            if (MenuItem("Undo", "CTRL+Z")) {}
-            if (MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
-            Separator();
-            if (MenuItem("Cut", "CTRL+X")) {}
-            if (MenuItem("Copy", "CTRL+C")) {}
-            if (MenuItem("Paste", "CTRL+V")) {}
-            EndMenu();
+            if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+            if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+            ImGui::Separator();
+            if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+            if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+            if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+            ImGui::EndMenu();
         }
-        EndMenuBar();
+        ImGui::EndMenuBar();
     }
 
     if (open_movie || open_stats || save_movie) global.video.play = false;
 
     if (save_movie)
-        OpenPopup("Save video");
+        ImGui::OpenPopup("Save video");
 
     save_video(&save_movie);
 
@@ -977,18 +1030,18 @@ void zoom()
     ImVec2 second, text_pos;
     const double difference = 1.5;
     // right button on the mouse is pressed
-    if (IsMouseClicked(0))
+    if (ImGui::IsMouseClicked(0))
     {
-        if (IsMousePosValid() && global.movie.zoom.i < 3 && global.settings.open == -1)
+        if (ImGui::IsMousePosValid() && global.movie.zoom.i < 3 && global.settings.open == -1)
         // if click happend in video window
         {
             // checking if the click happend in the movie window
-            ImVec2 click = GetIO().MousePos;
+            ImVec2 click = ImGui::GetIO().MousePos;
             if ((click.x >= global.movie.poz_x && click.x <= global.movie.poz_x + global.movie.width ) &&
                 (click.y >= global.movie.poz_y && click.y <= global.movie.poz_y + global.movie.height))
             {
                 // save position where the click occured
-                mouse_pos[global.movie.zoom.i] = GetIO().MousePos;
+                mouse_pos[global.movie.zoom.i] = ImGui::GetIO().MousePos;
                 global.movie.zoom.i ++;
             }
         }
@@ -996,14 +1049,14 @@ void zoom()
     else
         // left mouse on the mouse is pressed
         // reset zoom
-        if (IsMouseClicked(1))
+        if (ImGui::IsMouseClicked(1))
             reset_zoom();
     
 
     if (global.movie.zoom.i == 1 && global.settings.open == -1)
-        if (IsMousePosValid())
+        if (ImGui::IsMousePosValid())
         {
-            second = GetIO().MousePos;
+            second = ImGui::GetIO().MousePos;
             w = abs(mouse_pos[0].x - second.x);
             h = abs(mouse_pos[0].y - second.y);
             if (h > difference * w || w > difference * h)
@@ -1114,78 +1167,78 @@ void zoom()
 
 void init_settings_window(bool *show)
 {
-    SetNextWindowPos(ImVec2(global.settings.poz_x, global.settings.poz_y));
-    SetNextWindowSize(ImVec2(global.settings.width, global.settings.height));
-    Begin("Settings", show,  
+    ImGui::SetNextWindowPos(ImVec2(global.settings.poz_x, global.settings.poz_y));
+    ImGui::SetNextWindowSize(ImVec2(global.settings.width, global.settings.height));
+    ImGui::Begin("Settings", show,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_MenuBar);
 
         init_settings_menubar();
 
         if (global.objects == NULL) push_disable();
-        if (CollapsingHeader("Movie"))
+        if (ImGui::CollapsingHeader("Movie"))
         {
-            Text("Pinningsites");
+            ImGui::Text("Pinningsites");
             if (global.N_pinningsites == 0) push_disable();
-            Checkbox("Show pinningsites", &global.movie.show_pinningsites);
+            ImGui::Checkbox("Show pinningsites", &global.movie.show_pinningsites);
             if (!global.movie.show_pinningsites) push_disable();
-            Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
+            ImGui::Checkbox("Show pinningsite grid lines", &global.movie.show_grid_lines);
             if (global.movie.show_grid_lines)
             {
-                ColorEdit3("Grid line color", (float *)&global.movie.grid_color);
-                DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
+                ImGui::ColorEdit3("Grid line color", (float *)&global.movie.grid_color);
+                ImGui::DragFloat("Grid line width", &global.movie.grid_line_width, 0.05f, 0.1f, 5.0f, "%.2f");
             }
-            Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
-            Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
+            ImGui::Checkbox("Decreese pinningsite radius", &global.movie.show_just_center_pinningsites);
+            ImGui::Checkbox("Monocrome pinningsites", &global.movie.monocrome_pinningsites);
             if (global.movie.monocrome_pinningsites)
-                ColorEdit3("Pinningsite color", (float *)&global.movie.pinningsite_color);
-            Separator();
+                ImGui::ColorEdit3("Pinningsite color", (float *)&global.movie.pinningsite_color);
+            ImGui::Separator();
             if (!global.movie.show_pinningsites) pop_disable();
             if (global.N_pinningsites == 0) pop_disable();
 
-            Text("Particles");
+            ImGui::Text("Particles");
             if (global.N_particles == 0) push_disable();
-            Checkbox("Show particles", &global.movie.show_particles);
+            ImGui::Checkbox("Show particles", &global.movie.show_particles);
             if (!global.movie.show_particles) push_disable();
-            Checkbox("Toggle trajectory", &global.movie.trajectories_on);
+            ImGui::Checkbox("Toggle trajectory", &global.movie.trajectories_on);
             if (global.movie.trajectories_on)
             {
-                double spacing = GetStyle().ItemInnerSpacing.x;
-                PushButtonRepeat(true);
-                if (ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
-                SameLine(0.0f, spacing);
-                if (ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
-                PopButtonRepeat();
-                SameLine();
-                Text("%d", global.movie.particles_tracked);
+                double spacing = ImGui::GetStyle().ItemInnerSpacing.x;
+                ImGui::PushButtonRepeat(true);
+                if (ImGui::ArrowButton("##left", ImGuiDir_Left)) { if (global.movie.particles_tracked > 1) global.movie.particles_tracked--; }
+                ImGui::SameLine(0.0f, spacing);
+                if (ImGui::ArrowButton("##right", ImGuiDir_Right)) { if (global.movie.particles_tracked < global.N_objects/4) global.movie.particles_tracked++; }
+                ImGui::PopButtonRepeat();
+                ImGui::SameLine();
+                ImGui::Text("%d", global.movie.particles_tracked);
 
-                ColorEdit3("Trajectory color", (float *)&global.movie.traj_color);
-                SameLine(); 
+                ImGui::ColorEdit3("Trajectory color", (float *)&global.movie.traj_color);
+                ImGui::SameLine(); 
                 show_help_marker("Click on the colored square to open a color picker.\nClick and hold to use drag and drop.\nRight-click on the colored square to show options.\nCTRL+click on individual component to input value.\n");
-                DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
+                ImGui::DragFloat("Trajectory width", &global.movie.traj_width, 0.05f, 0.1f, 5.0f, "%.2f");
                 show_help_marker("Click and drag to change the value");
             }
-            Checkbox("Monocrome particles", &global.movie.monocrome_particles);
+            ImGui::Checkbox("Monocrome particles", &global.movie.monocrome_particles);
             if (global.movie.monocrome_particles)
-                ColorEdit3("Particle color", (float *)&global.movie.particle_color);
+                ImGui::ColorEdit3("Particle color", (float *)&global.movie.particle_color);
             if (!global.movie.show_particles) pop_disable();
-            Separator();
+            ImGui::Separator();
             if (global.N_particles == 0) pop_disable();
 
             if (abs(global.SX - global.movie.zoom.width) < 0.05  && abs(global.SY - global.movie.zoom.height) < 0.05) push_disable();
-            if (TreeNode("Zoom"))
+            if (ImGui::TreeNode("Zoom"))
             {
-                TreePop();
-                Separator();
+                ImGui::TreePop();
+                ImGui::Separator();
             }
             if (abs(global.SX - global.movie.zoom.width) < 0.05  && abs(global.SY - global.movie.zoom.height) < 0.05) pop_disable();
         }
         if (global.objects == NULL) pop_disable();
 
         if (global.stats == NULL) push_disable();
-        if (CollapsingHeader("Graph"))
+        if (ImGui::CollapsingHeader("Graph"))
         {
-            if (Checkbox("Show all data", &global.graph.show_all))
+            if (ImGui::Checkbox("Show all data", &global.graph.show_all))
             {
                 if (global.graph.show_all)
                     for (size_t j = 0; j < global.number_of_columns; j++)
@@ -1195,17 +1248,17 @@ void init_settings_window(bool *show)
                         global.graph.show[j] = false;
             }
 
-            if (TreeNode("Data shown"))
+            if (ImGui::TreeNode("Data shown"))
             {
                 bool all = true;
                 for (size_t j = 0; j < global.number_of_columns; j++) 
                 {
-                    Checkbox(global.stat_names[j], &global.graph.show[j]);
+                    ImGui::Checkbox(global.stat_names[j], &global.graph.show[j]);
                     if (global.graph.show[j])
                     {
                         char* str = (char *) malloc(global.number_of_columns + 4);
                         snprintf(str, global.number_of_columns + 4, "##lc%zu", j);
-                        ColorEdit3(str, (float *)&global.graph.line_colors[j]);
+                        ImGui::ColorEdit3(str, (float *)&global.graph.line_colors[j]);
                         free(str);
                     }
                     else
@@ -1213,30 +1266,30 @@ void init_settings_window(bool *show)
                 }
 
                 global.graph.show_all = all;
-                TreePop();
-                Separator();
+                ImGui::TreePop();
+                ImGui::Separator();
             }
         }
         if (global.stats == NULL) pop_disable();
 
-        if (CollapsingHeader("Help"))
+        if (ImGui::CollapsingHeader("Help"))
         {
             // 62 characters per row
-            if (TreeNode("General"))
+            if (ImGui::TreeNode("General"))
             {
-                BulletText("Double-click on title bar to collapse window.");
-                BulletText("CTRL+Click on a slider to input value as text.");
-                TreePop();
+                ImGui::BulletText("Double-click on title bar to collapse window.");
+                ImGui::BulletText("CTRL+Click on a slider to input value as text.");
+                ImGui::TreePop();
             }
-            if (TreeNode("Zoom"))
+            if (ImGui::TreeNode("Zoom"))
             {
-                BulletText("For zoom click in the movie just select two points in the\n movie which define the corners of the rectangle.");
-                BulletText("To reset zoom left click on the movie.");
-                TreePop();
+                ImGui::BulletText("For zoom click in the movie just select two points in the\n movie which define the corners of the rectangle.");
+                ImGui::BulletText("To reset zoom left click on the movie.");
+                ImGui::TreePop();
             }
         }
     
-    End();
+    ImGui::End();
 }
     
 void start_main_loop()
@@ -1249,21 +1302,21 @@ void start_main_loop()
         // Start the Dear ImGui frame
         ImGui_ImplOpenGL2_NewFrame();
         ImGui_ImplGlfw_NewFrame();
-        NewFrame();
+        ImGui::NewFrame();
 
         init_video_window(NULL);
         init_graph_window(NULL);
         init_settings_window(NULL);
 
         // Rendering
-        Render();
+        ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(global.window.window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
         glClearColor(global.window.background_color.x, global.window.background_color.y, global.window.background_color.z, global.window.background_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         
-        ImGui_ImplOpenGL2_RenderDrawData(GetDrawData());
+        ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
         glfwMakeContextCurrent(global.window.window);
         glfwSwapBuffers(global.window.window);
 
@@ -1276,7 +1329,7 @@ void cleanup()
     // Cleanup
     ImGui_ImplOpenGL2_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    DestroyContext();
+    ImGui::DestroyContext();
 
     glfwDestroyWindow(global.window.window);
     glfwTerminate();
@@ -1342,7 +1395,7 @@ void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned
     *x = *x * x_size / x_max + distance_from_origin;
 }
 
-void transform_movie_coordinates(double *x, double *y)
+void transform_movie_coordinates(double *x, double *y, ImVec2 draw_pos, ImVec2 proportion)
 {
     // translate point to the origin
     *x -= global.movie.zoom.corners[0].x;
@@ -1351,8 +1404,8 @@ void transform_movie_coordinates(double *x, double *y)
     // global.movie.draw_height / global.movie.proportion_y --> the shown system height
     *y = global.movie.draw_height / global.movie.proportion_y - *y;
 
-    *x = *x * global.movie.proportion_x + global.movie.draw_x;
-    *y = *y * global.movie.proportion_y + global.movie.draw_y;
+    *x = *x * proportion.x + draw_pos.x;
+    *y = *y * proportion.y + draw_pos.y;
 }
 
 //transforms from simulation unit distances to Opengl units
@@ -1386,14 +1439,14 @@ void read_image(GLuint *texture, const char *filename)
 
 void show_help_marker(const char *desc)
 {
-    TextDisabled("(?)");
-    if (IsItemHovered())
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
     {
-        BeginTooltip();
-        PushTextWrapPos(GetFontSize() * 35.0f);
-        TextUnformatted(desc);
-        PopTextWrapPos();
-        EndTooltip();
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(desc);
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
     }
 }
 
@@ -1409,9 +1462,9 @@ unsigned int add_file_location(const char *filename)
         // copying len + 1 characters to get null pointer at the end as well
         memcpy(ptr, filename, len + 1);
     }
-    PushTextWrapPos(0.0f);
-    TextUnformatted(ptr);
-    PopTextWrapPos();
+    ImGui::PushTextWrapPos(0.0f);
+    ImGui::TextUnformatted(ptr);
+    ImGui::PopTextWrapPos();
     length = strlen(ptr);
     free(ptr);
 
@@ -1420,12 +1473,71 @@ unsigned int add_file_location(const char *filename)
 
 void push_disable()
 {
-    PushItemFlag(ImGuiItemFlags_Disabled, true);
-    PushStyleVar(ImGuiStyleVar_Alpha, GetStyle().Alpha * 0.5f);
+    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
 }
 
 void pop_disable()
 {
-    PopItemFlag();
-    PopStyleVar();
+    ImGui::PopItemFlag();
+    ImGui::PopStyleVar();
+}
+
+char *check_path(const char *filename)
+{
+    time_t now = time(NULL);
+    char buff[16];
+    strftime(buff, 16, "%Y%m%d_%H%M%S", localtime(&now));
+
+    char *name, *project;
+    name = (char *) malloc(global.save.filename_length);
+    std::string default_filename = "../videos/test.avi";
+
+    if (strstr(filename, "../") != NULL)
+    // if in the selectd path there is step to the parent directory we use the default filename, 
+    // because we want to prevent enabling writing in operating systems root
+    {
+        strncpy(name, default_filename.c_str(), default_filename.length());
+        name[default_filename.length()] = '\0';
+    }
+
+    if ((project = const_cast<char*>(strstr(filename, global.project_name.c_str()))) == NULL)
+    // the selected path is above the project root, we do not allow that
+    {
+        strncpy(name, default_filename.c_str(), default_filename.length());
+        name[default_filename.length()] = '\0';
+    }
+    else
+    // the selected path is somewhere in the project root
+    {
+        snprintf(name, global.save.filename_length, "%s%s", global.path, project + global.project_name.length() + 1);
+    }
+
+    char *extension = get_extension(name);
+    if (extension == NULL)
+    {
+        snprintf(&name[strlen(name)], 5, ".avi");
+        extension = get_extension(name);
+    }
+    else
+    {
+        if (strstr(".avi.mp4.mkv.mov.amv.m4p.gif", extension) == NULL)
+        // if selected file does not have one of the extensions mentioned above we use the default filename
+        {
+            strncpy(name, default_filename.c_str(), default_filename.length());
+            name[default_filename.length()] = '\0';
+            extension = get_extension(name);
+        }
+    }
+
+    if (file_exists(name))
+    // if the selected file exists we change it's name to not overwrite the other file
+    {
+        name = remove_extension(name);
+        size_t len = snprintf(NULL, 0, "%s_%s", name, buff);
+        name = (char *) realloc(name, len + 1);
+        snprintf(&name[strlen(name)], 16 + 5, "_%s%s", buff, extension);
+    }
+
+    return name;    
 }

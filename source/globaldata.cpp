@@ -15,17 +15,34 @@
 #include <time.h>
 #include <cstring>
 
+struct global_struct global;
+
 // http://www.codebind.com/cpp-tutorial/c-get-current-directory-linuxwindows/
-#ifdef WINDOWS
+#ifdef _WIN32
     #include <direct.h>
     #define get_current_dir _getcwd
+    int file_exists(const char *filename)
+    {
+        WIN32_FIND_DATA FindFileData;
+        HANDLE handle = FindFirstFile(filename, &FindFileData) ;
+        int found = handle != INVALID_HANDLE_VALUE;
+        if (found) {
+            FindClose(handle);
+            return 1;
+        } else
+            return 0;
+    }
 #else   // LINUX or MAC
     #include <unistd.h>
     #define get_current_dir getcwd
+    int file_exists(const char *filename)
+    {
+        if (access(filename, F_OK) != -1)
+            return 1;
+        else
+            return 0;
+    }
 #endif
-
-struct global_struct global;
-
 
 void get_current_working_dir(char *current_working_dir) {
     char buff[FILENAME_MAX];
@@ -38,7 +55,7 @@ void get_relative_path_to_project_root(char *path, size_t path_size) {
 
     current_working_dir = (char *) malloc(255);
     get_current_working_dir(current_working_dir);
-    plot = strstr(current_working_dir, "Plotting-using-ImGui");
+    plot = strstr(current_working_dir, global.project_name.c_str());
     strncpy(path, "", 1);
     char *buff, *const end = path + path_size;
     buff = path;
@@ -83,6 +100,8 @@ void initialize_global_data(char *filename)
     // movie data
     global.N_frames = 0;
     global.current_frame = 0;
+
+    global.project_name = "Plotting-using-ImGui";
 }
 
 void reallocate_filenames(size_t len)
@@ -251,8 +270,8 @@ void read_moviefile_data(bool first_call)
         if (global.statfilename == NULL)
             global.statfilename = (char *) malloc(global.length);
         replace_last(filename, movies_dir, stats_dir);
-        len = snprintf(NULL, 0, "%s.mvi", filename);
-        reallocate_filenames(len);
+        len = snprintf(NULL, 0, "%s.txt", filename);
+        reallocate_filenames(len + 1);
         snprintf(global.statfilename, global.length, "%s.txt", filename);
         read_statisticsfile_data(false);
         free(filename);
@@ -392,7 +411,7 @@ void read_statisticsfile_data(bool first_call)
             fgets(buff, buff_size, global.statfile);
             // there is an extra space at the end of the row
             buff[strlen(buff) - 2] = '\0';
-            global.stats[global.N_stats].data = (float *) malloc( global.number_of_columns * sizeof(float));
+            global.stats[global.N_stats].data = (double *) malloc( global.number_of_columns * sizeof(double));
             size_t n = global.number_of_columns - 1;
             // there is a space at the begining of the row
             while ((ptr = strrchr(buff, ' ')) != NULL)
@@ -426,7 +445,7 @@ void read_statisticsfile_data(bool first_call)
             global.moviefilename = (char *) malloc(global.length);
         replace_last(filename, stats_dir, movies_dir);
         len = snprintf(NULL, 0, "%s.mvi", filename);
-        reallocate_filenames(len);
+        reallocate_filenames(len + 1);
         snprintf(global.moviefilename, global.length, "%s.mvi", filename);
         read_moviefile_data(false);
         free(filename);
@@ -499,6 +518,8 @@ void free_arrays()
 
     if (global.moviefile_error) free(global.moviefile_error);
     if (global.statfile_error)  free(global.statfile_error);
+    
+    free(global.save.filename);
 }
 
 char* remove_extension(const char* filename)
@@ -562,11 +583,12 @@ void replace_last(char *in, const char *to_replace, const char *replace_with)
     len_tail = strlen(tail);
 
     diff = len_to_replace - len_replace_with;
-    if (diff != 0)
+    if (diff < 0)
         in = (char *) realloc(in, diff + len_in + 1);
 
     for (i = n, j = 0; i < n + len_replace_with; i++, j++)
         in[i] = replace_with[j];
+
     for (j = 0; j < len_tail; j++, i++)
         in[i] = tail[j];
     in[i] = '\0';
