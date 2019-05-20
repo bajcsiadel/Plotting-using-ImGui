@@ -239,7 +239,7 @@ int init_window()
 
     global.save.filename_length = 255;
     global.save.filename = (char *) malloc(global.save.filename_length);
-    snprintf(global.save.filename, global.save.filename_length, "../vedios/test.avi");
+    snprintf(global.save.filename, global.save.filename_length, "../videos/test.avi");
 
     return 1;
 }
@@ -877,10 +877,10 @@ void save_video(bool *save_movie)
         {
             ImGui::ProgressBar((double) (global.save.current - global.save.from) / (double) (global.save.to - global.save.from), ImVec2(-1.0, 0.0));
             // write to video file I choose
-            static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 45, cv::Size(global.movie.width, global.movie.height));
+            static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 60, cv::Size(global.movie.width, global.movie.height));
             cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height, global.save.padding);
             video.write(frame);
-            global.save.current ++;
+            global.save.current += global.video.step;
             if (global.save.current > global.save.to || ImGui::Button("Cancel##Progress"))
             {
                 video.release();

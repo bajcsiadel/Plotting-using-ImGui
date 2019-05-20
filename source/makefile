@@ -64,28 +64,31 @@ CFLAGS = $(CXXFLAGS)
 
 # creating needed object files to compile $(EXE)
 $(OUT_DIR)%.o: $(OUT_DIR)%.cpp
-	$(CXX) $(CXXFLAGS) -c -o $@ $<
+	@$(CXX) $(CXXFLAGS) -c -o $@ $<
+	@echo "Create \t $@"
 
 # this will be executed if we write in terminal just make
 all: clean create
 
 create: directories copy_all $(EXE) delete_copies
-	@echo $(GREEN)"Build complete for $(ECHO_MESSAGE)\n"$(DEFAULT)
 	@if [ $(OK) != ok ]; then \
-		echo "You have to install openCV3 separately if you want to use the save function\n"; \
+		echo "You have to install openCV3 separately if you want to use the save function"; \
+	else \
+		echo "openCV3 is set"; \
 	fi
+	@echo $(GREEN)"Build complete for $(ECHO_MESSAGE)\n"$(DEFAULT)
 
 $(EXE): $(HEADERS) $(OBJS)
-	@echo ""
-	$(CXX) -o $(OUT_DIR)$@ $^ $(CXXFLAGS) $(LIBS)
+	@echo "\nCreate executable \t"$(GREEN)"$(EXE)"$(DEFAULT)
+	@$(CXX) -o $(OUT_DIR)$@ $^ $(CXXFLAGS) $(LIBS)
 	@echo ""
 
 # delete existing binary- and object files
 # $(OUT_DIR)$(EXE) - binary created on Linux or Apple
 # $(OUT_DIR)$(EXE).exe - binary created on Windows
 clean:
-	@echo $(GREEN)"Remove binary files"$(DEFAULT)
-	rm -f $(OUT_DIR)$(EXE) $(OUT_DIR)$(EXE).exe $(OBJS)
+	@echo $(GREEN)"Remove existing binary files"$(DEFAULT)
+	@rm -f $(OUT_DIR)$(EXE) $(OUT_DIR)$(EXE).exe $(OBJS)
 	@echo ""
 
 # copying source and header files to the target directory, because it is easier to write a rule to creating object from source file
@@ -119,6 +122,6 @@ install_libraries:
 	sudo apt-get install pkg-config
 	sudo apt-get install libglfw3
 	sudo apt-get install libglfw3-dev
-	@echo $(GREEN)"Libraried has been installed!\n"$(DEFAULT)
+	@echo $(GREEN)"Libraries has been installed!\n"$(DEFAULT)
 
 uninstall: clean
