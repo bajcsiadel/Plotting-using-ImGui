@@ -13,7 +13,7 @@ size_t estimated_label_row_number();
 void general_transform_coordinates(double *x, double x_max, int x_size, int distance_from_origin, bool flip = false);
 void general_transform_coordinates(unsigned int *x, unsigned int x_max, unsigned int x_size, int distance_from_origin, bool flip = false);
 void init_graph_window(bool *show);
-void init_movie(bool *show);
+void init_movie();
 void init_settings_menubar();
 void init_settings_window(bool *show);
 void init_video_window(bool *show);

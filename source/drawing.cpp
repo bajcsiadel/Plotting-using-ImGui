@@ -19,95 +19,79 @@
 #include <ctime>
 #include <iostream>
 
+struct DrawBase {
+    public:
+        ImVec2 draw_pos;
+        ImVec2 proportion;
+        int current_frame;
+        virtual void DrawLine(double x1, double y1, double x2, double y2, ImVec4 color, double width) {};
+        virtual void DrawCircle(double x, double y, double r, ImVec4 color) {};
+        virtual void DrawCircleFilled(double x, double y, double r, ImVec4 color) {};
+};
+
+struct WindowDraw : virtual public DrawBase
+{
+    public: 
+        ImDrawList* frame;
+
+        WindowDraw(ImDrawList* f) : frame(f) {
+            draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y);
+            proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
+            current_frame = global.current_frame;
+        }
+
+        ImU32 GetColor(ImVec4 color) {
+            return ImColor(color);
+        }
+
+        void DrawLine(double x1, double y1, double x2, double y2, ImVec4 color, double width) override {
+            frame->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(color), width);
+        }
+
+        void DrawCircle(double x, double y, double r, ImVec4 color) override {
+            frame->AddCircle(ImVec2(x, y), r, GetColor(color), 36, 1);
+        }
+
+        void DrawCircleFilled(double x, double y, double r, ImVec4 color) override {
+            frame->AddCircleFilled(ImVec2(x, y), r, GetColor(color), 36);
+        }
+};
+
+
 #ifdef OPENCV
     #include <opencv2/opencv.hpp>
 
-    cv::Mat make_frame(int current_frame, int width, int height, int padding)
+    struct VideoDraw : public DrawBase
     {
-        unsigned int i, n, c;
-        int j;
-        double x, y, r, x1, y1, x2, y2;
-        cv::Mat frame(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
-        ImVec2 draw_pos   = ImVec2(padding, padding),
+        cv::Mat frame;
+        ImVec2 draw_pos;
+        ImVec2 proportion;
+        int current_frame;
+
+        VideoDraw(int width, int height, int padding, int current) {
+            frame = cv::Mat(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+            draw_pos   = ImVec2(padding, padding);
             proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
-        
-        // if (global.movie.show_grid_lines)
-        //     draw_grid(draw_list);
-
-        n = 0;
-        if (global.objects != NULL)
-        {
-            for (i = 0; i < global.N_objects; i++)
-            {
-
-                x = global.objects[current_frame][i].x;
-                y = global.objects[current_frame][i].y;
-
-                if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
-                    !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
-                    // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
-                    continue;
-
-                r = global.objects[current_frame][i].R;
-            
-                transform_movie_coordinates(&x, &y, draw_pos, proportion);
-                transform_distance(&r);
-                c = global.objects[current_frame][i].color;
-                if (c < 0 || c > 9) c = 0;
-                cv::Scalar col32 = cv::Scalar(colors[c].z * 255, colors[c].y * 255, colors[c].x * 255);
-                if (global.objects[current_frame][i].R == global.particle_r) 
-                {
-                    if (global.movie.show_particles)
-                    {
-                        if (global.movie.monocrome_particles) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                        circle(frame, cv::Point((int)x, (int)y), r, cv::Scalar(colors[c].x, colors[c].y, colors[c].z), -1, CV_AA);
-                        if (global.movie.trajectories_on)
-                        {
-                            if (n < global.movie.particles_tracked)
-                            {
-                                n ++;
-                                for (j = 0; j < current_frame - 1; j++)
-                                {
-                                    x1 = global.objects[j][i].x;
-                                    y1 = global.objects[j][i].y;
-
-                                    x2 = global.objects[j + 1][i].x;
-                                    y2 = global.objects[j + 1][i].y;
-                                    if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
-                                    {
-                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
-                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
-                                        line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(global.movie.traj_color.z * 255, global.movie.traj_color.y * 255, global.movie.traj_color.x * 255), global.movie.traj_width, CV_AA);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else 
-                    if (global.movie.show_pinningsites)
-                    {
-                        if (global.movie.monocrome_pinningsites) col32 = cv::Scalar(global.movie.particle_color.z * 255, global.movie.particle_color.y * 255, global.movie.particle_color.x * 255);
-                        if (global.movie.show_just_center_pinningsites)
-                            circle(frame, cv::Point((int)x, (int)y), r / 3, col32, 1, CV_AA);
-                        else
-                            circle(frame, cv::Point((int)x, (int)y), r, col32, 1, CV_AA);
-                    }
-            }
+            current_frame = current;
         }
-        return frame;
-    }
 
-    void make_video(const char *videoname, int from, int to, int width, int height)
-    {
-        cv::VideoWriter video(videoname, CV_FOURCC('M','J','P','G'), 40, cv::Size(width, height));
-        for (int i = from; i <= to; i++)
-        {
-            cv::Mat frame = make_frame(i, width, height, global.save.padding);
-            video.write(frame);
+        cv::Scalar GetColor(ImVec4 color) {
+            return cv::Scalar(color.z * 255, color.y * 255, color.x * 255);
         }
-        video.release();
-    }
+
+        void DrawLine(double x1, double y1, double x2, double y2, ImVec4 color, double width) override {
+            line(frame, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(color.z * 255, color.y * 255, color.x * 255), width, CV_AA);
+        }
+
+        void DrawCircle(double x, double y, double r, ImVec4 color) override {
+            circle(frame, cv::Point((int)x, (int)y), r, GetColor(color), 1, CV_AA);
+        }
+
+        void DrawCircleFilled(double x, double y, double r, ImVec4 color) override {
+            circle(frame, cv::Point((int)x, (int)y), r, GetColor(color), -1, CV_AA);
+        }
+    };
+
 #endif
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
@@ -293,82 +277,89 @@ void reset_zoom()
     global.movie.proportion_y = (double) global.movie.draw_height / global.movie.zoom.height;
 }
 
-void init_movie(bool show_video_window)
+template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
 {
     unsigned int i, n, c;
     int j;
     double x, y, r, x1, y1, x2, y2;
-    ImDrawList *draw_list;
-    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
-           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
+    ImVec4 col32;
 
-    ImGui::BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
-        global.movie.draw_list = draw_list = ImGui::GetWindowDrawList();
-        // global.movie.draw_list->AddRect(ImVec2(global.movie.draw_x, global.movie.draw_y), ImVec2(global.movie.draw_x + global.movie.draw_width, global.movie.draw_y + global.movie.draw_height), (ImU32) ImColor(colors[0]));
-
-        if (global.movie.show_grid_lines)
-            draw_grid(draw_list);
-
-        n = 0;
-        if (global.objects != NULL)
+    n = 0;
+    if (global.objects != NULL)
+    {
+        for (i = 0; i < global.N_objects; i++)
         {
-            for (i = 0; i < global.N_objects; i++)
+
+            x = global.objects[drawer.current_frame][i].x;
+            y = global.objects[drawer.current_frame][i].y;
+
+            if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
+                !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
+                // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
+                continue;
+
+            r = global.objects[drawer.current_frame][i].R;
+        
+            transform_movie_coordinates(&x, &y, drawer.draw_pos, drawer.proportion);
+            transform_distance(&r);
+            c = global.objects[drawer.current_frame][i].color;
+            if (c < 0 || c > 9) c = 0;
+            col32 = colors[c];
+            if (global.objects[drawer.current_frame][i].R == global.particle_r) 
             {
-                x = global.objects[global.current_frame][i].x;
-                y = global.objects[global.current_frame][i].y;
-
-                if (!(x >= global.movie.zoom.corners[0].x) || !(x <= global.movie.zoom.corners[1].x) ||
-                    !(y >= global.movie.zoom.corners[0].y) || !(y <= global.movie.zoom.corners[1].y))
-                    // if the current particle/pinningsite is not in the zoomed area, then skip it and go to the next element
-                    continue;
-
-                r = global.objects[global.current_frame][i].R;
-            
-                transform_movie_coordinates(&x, &y, draw_pos, proportion);
-                transform_distance(&r);
-                c = global.objects[global.current_frame][i].color;
-                if (c < 0 || c > 9) c = 0;
-                ImU32 col32 = ImColor(colors[c]);
-                if (global.objects[global.current_frame][i].R == global.particle_r) 
+                if (global.movie.show_particles)
                 {
-                    if (global.movie.show_particles)
+                    if (global.movie.monocrome_particles) col32 = global.movie.particle_color;
+                    drawer.DrawCircleFilled(x, y, r, col32);
+                    if (global.movie.trajectories_on)
                     {
-                        if (global.movie.monocrome_particles) col32 = ImColor(global.movie.particle_color);
-                        draw_list->AddCircleFilled(ImVec2(x, y), r, col32, 36);
-                        if (global.movie.trajectories_on)
+                        if (n < global.movie.particles_tracked)
                         {
-                            if (n < global.movie.particles_tracked)
+                            n ++;
+                            for (j = 0; j < drawer.current_frame - 1; j++)
                             {
-                                n ++;
-                                for (j = 0; j < global.current_frame - 1; j++)
-                                {
-                                    x1 = global.objects[j][i].x;
-                                    y1 = global.objects[j][i].y;
+                                x1 = global.objects[j][i].x;
+                                y1 = global.objects[j][i].y;
 
-                                    x2 = global.objects[j + 1][i].x;
-                                    y2 = global.objects[j + 1][i].y;
-                                    if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
-                                    {
-                                        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
-                                        transform_movie_coordinates(&x2, &y2, draw_pos, proportion);
-                                        draw_list->AddLine(ImVec2(x1, y1), ImVec2(x2, y2), ImColor(global.movie.traj_color), global.movie.traj_width);
-                                    }
+                                x2 = global.objects[j + 1][i].x;
+                                y2 = global.objects[j + 1][i].y;
+                                if ((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) < 2.0)
+                                {
+                                    transform_movie_coordinates(&x1, &y1, drawer.draw_pos, drawer.proportion);
+                                    transform_movie_coordinates(&x2, &y2, drawer.draw_pos, drawer.proportion);
+                                    drawer.DrawLine(x1, y1, x2, y2, global.movie.traj_color, global.movie.traj_width);
                                 }
                             }
                         }
                     }
                 }
-                else 
-                    if (global.movie.show_pinningsites)
-                    {
-                        if (global.movie.monocrome_pinningsites) col32 = ImColor(global.movie.pinningsite_color);
-                        if (global.movie.show_just_center_pinningsites)
-                            draw_list->AddCircle(ImVec2(x, y), r / 3, col32, 36, 1);
-                        else
-                            draw_list->AddCircle(ImVec2(x, y), r, col32, 36, 1);
-                    }
             }
+            else 
+                if (global.movie.show_pinningsites)
+                {
+                    if (global.movie.monocrome_pinningsites) col32 = global.movie.particle_color;
+                    if (global.movie.show_just_center_pinningsites)
+                        drawer.DrawCircle(x, y, r / 3, col32);
+                    else
+                        drawer.DrawCircle(x, y, r, col32);
+                }
         }
+    }
+}
+
+void init_movie()
+{
+    unsigned int i, n, c;
+    int j;
+    double x, y, r, x1, y1, x2, y2;
+    ImDrawList *draw_list = NULL;
+    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
+           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
+
+    ImGui::BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
+        global.movie.draw_list = draw_list = ImGui::GetWindowDrawList();
+        WindowDraw window_drawer(draw_list);
+        make_frame<>(window_drawer);
         zoom();
     ImGui::EndChild();
 }
@@ -382,7 +373,7 @@ void init_video_window(bool *show_video_window)
         ImGuiWindowFlags_NoMove);
         // add_file_location(global.moviefilename);
         ImGui::Text("%f x %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        init_movie(true);
+        init_movie();
         
         GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
         // https://www.flaticon.com/packs/music
@@ -610,7 +601,7 @@ void init_graph_window(bool *show)
     double *data1, *data2;
     double *data_min, *data_max;
     double min, max;
-    ImDrawList *draw_list;
+    ImDrawList *draw_list = NULL;
 
     poz_x = global.window.margin;
     poz_y = global.window.margin + global.video.height + global.window.margin;
@@ -650,15 +641,15 @@ void init_graph_window(bool *show)
                 max_stats(&t_max, data_max);
                 min_stats(&t_min, data_min);
                 
-                min = HUGE_VAL_F32;
+                min = HUGE_VALF;
                 for (size_t j = 0; j < global.number_of_columns - 1; j++)
                     if (global.graph.show[j] && min > data_min[j]) min = data_min[j];
-                if ((global.graph.show[global.number_of_columns - 1] && min > data_min[global.number_of_columns - 1]) || min == HUGE_VAL_F32) min = data_min[global.number_of_columns - 1];
+                if ((global.graph.show[global.number_of_columns - 1] && min > data_min[global.number_of_columns - 1]) || min == HUGE_VALF) min = data_min[global.number_of_columns - 1];
 
-                max = (-1) * HUGE_VAL_F32;
+                max = (-1) * HUGE_VALF;
                 for (size_t j = 0; j < global.number_of_columns - 1; j++)
                     if (global.graph.show[j] && max < data_max[j]) max = data_max[j];
-                if ((global.graph.show[global.number_of_columns - 1] && max < data_max[global.number_of_columns - 1]) || max == (-1) * HUGE_VAL_F32) max = data_max[global.number_of_columns - 1];
+                if ((global.graph.show[global.number_of_columns - 1] && max < data_max[global.number_of_columns - 1]) || max == (-1) * HUGE_VALF) max = data_max[global.number_of_columns - 1];
                 
                 if (min == max) max += 0.0125;
 
@@ -869,8 +860,6 @@ void save_video(bool *save_movie)
             global.save.started = true;
             global.save.current = global.save.from;
             ImGui::OpenPopup("Saving...##Modal");
-            // make_video("proba.avi", 10, 1001, global.movie.width, global.movie.height);
-            // *save_movie = false;
         }
         ImGui::SetNextWindowSize(ImVec2(200, 80));
         if(ImGui::BeginPopupModal("Saving...##Modal", &global.save.started, ImGuiWindowFlags_NoResize))
@@ -878,8 +867,12 @@ void save_video(bool *save_movie)
             ImGui::ProgressBar((double) (global.save.current - global.save.from) / (double) (global.save.to - global.save.from), ImVec2(-1.0, 0.0));
             // write to video file I choose
             static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 60, cv::Size(global.movie.width, global.movie.height));
-            cv::Mat frame = make_frame(global.save.current, global.movie.width, global.movie.height, global.save.padding);
-            video.write(frame);
+            VideoDraw video_drawer = { .width         = global.movie.width, 
+                                       .height        = global.movie.height, 
+                                       .padding       = global.save.padding, 
+                                       .current_frame = global.save.current };
+            make_frame<VideoDraw>(video_drawer);
+            video.write(video_drawer.frame);
             global.save.current += global.video.step;
             if (global.save.current > global.save.to || ImGui::Button("Cancel##Progress"))
             {
