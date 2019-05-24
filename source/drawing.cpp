@@ -341,7 +341,7 @@ template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
             else 
                 if (global.movie.show_pinningsites)
                 {
-                    if (global.movie.monocrome_pinningsites) col32 = global.movie.particle_color;
+                    if (global.movie.monocrome_pinningsites) col32 = global.movie.pinningsite_color;
                     if (global.movie.show_just_center_pinningsites)
                         drawer.DrawCircle(x, y, r / 3, col32);
                     else
