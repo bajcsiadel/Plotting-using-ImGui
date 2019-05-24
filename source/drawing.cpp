@@ -68,7 +68,7 @@ struct WindowDraw : virtual public DrawBase
         ImVec2 proportion;
         int current_frame;
 
-        VideoDraw(int width, int height, int padding, int current) {
+        VideoDraw(unsigned int width, unsigned int height, int padding, int current) {
             frame = cv::Mat(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
             draw_pos   = ImVec2(padding, padding);
             proportion = ImVec2((width - 2 * padding) / global.movie.zoom.width, (height - 2 * padding) / global.movie.zoom.height);
@@ -118,6 +118,7 @@ int init_window()
     global.window.window = glfwCreateWindow(global.Windowsize_x, global.Windowsize_y, "Plot", NULL, NULL);
     if (global.window.window == NULL)
     {
+        print_log();
         COLOR_ERROR;
         printf("ERROR (%s: line %d)\n\tCould not create window!\n", strrchr(__FILE__, '/') + 1, __LINE__);
         COLOR_DEFAULT;
@@ -284,6 +285,9 @@ template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
     double x, y, r, x1, y1, x2, y2;
     ImVec4 col32;
 
+    if (global.movie.show_grid_lines)
+        draw_grid<Drawer>(drawer);
+
     n = 0;
     if (global.objects != NULL)
     {
@@ -349,16 +353,9 @@ template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
 
 void init_movie()
 {
-    unsigned int i, n, c;
-    int j;
-    double x, y, r, x1, y1, x2, y2;
-    ImDrawList *draw_list = NULL;
-    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
-           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
-
     ImGui::BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
-        global.movie.draw_list = draw_list = ImGui::GetWindowDrawList();
-        WindowDraw window_drawer(draw_list);
+        global.movie.draw_list = ImGui::GetWindowDrawList();
+        WindowDraw window_drawer(global.movie.draw_list);
         make_frame<>(window_drawer);
         zoom();
     ImGui::EndChild();
@@ -377,12 +374,12 @@ void init_video_window(bool *show_video_window)
         
         GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
         // https://www.flaticon.com/packs/music
-        read_image(&play_image, global.video.play_img_location);
-        read_image(&pause_image, global.video.pause_img_location);
-        read_image(&back_image, global.video.back_img_location);
-        read_image(&next_image, global.video.next_img_location);
-        read_image(&rewind_image, global.video.rewind_img_location);
-        read_image(&fastforward_image, global.video.fastforward_img_location);
+        // read_image(&play_image, global.video.play_img_location);
+        // read_image(&pause_image, global.video.pause_img_location);
+        // read_image(&back_image, global.video.back_img_location);
+        // read_image(&next_image, global.video.next_img_location);
+        // read_image(&rewind_image, global.video.rewind_img_location);
+        // read_image(&fastforward_image, global.video.fastforward_img_location);
         
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
@@ -424,14 +421,12 @@ void init_video_window(bool *show_video_window)
         global.current_frame = (global.current_frame < (int) global.N_frames - (int) global.video.step ? global.current_frame + global.video.step : 0);
 }
 
-void draw_grid(ImDrawList *draw_list)
+template <typename Drawer> void draw_grid(Drawer drawer)
 {
     unsigned int N_rows, N_columns;
     unsigned int i;
     double dx, dy;
-    ImU32 color;
-    ImVec2 draw_pos   = ImVec2(global.movie.draw_x, global.movie.draw_y),
-           proportion = ImVec2(global.movie.proportion_x, global.movie.proportion_y);
+    ImVec4 color;
 
     N_columns = (int) (global.SX / (2 * global.pinningsite_r)) + 1;
     N_rows = (int) (global.SY / (2 * global.pinningsite_r)) + 1;
@@ -439,17 +434,17 @@ void draw_grid(ImDrawList *draw_list)
     dx = global.SX / N_columns;
     dy = global.SY / N_rows;
 
-    color = ImColor(global.movie.grid_color);
+    color = global.movie.grid_color;
 
     for (i = 1; i < N_rows; i++)
     {
         double y0 = i * dy, y1 = i * dy;
         double x0 = 0.0, x1 = global.SX;
 
-        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
-        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+        transform_movie_coordinates(&x0, &y0, drawer.draw_pos, drawer.proportion);
+        transform_movie_coordinates(&x1, &y1, drawer.draw_pos, drawer.proportion);
 
-        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+        drawer.DrawLine(x0, y0, x1, y1, color, global.movie.grid_line_width);
     }
 
     for (i = 1; i < N_columns; i++)
@@ -457,10 +452,10 @@ void draw_grid(ImDrawList *draw_list)
         double x0 = i * dx, x1 = i * dx;
         double y0 = 0.0, y1 = global.SY;
 
-        transform_movie_coordinates(&x0, &y0, draw_pos, proportion);
-        transform_movie_coordinates(&x1, &y1, draw_pos, proportion);
+        transform_movie_coordinates(&x0, &y0, drawer.draw_pos, drawer.proportion);
+        transform_movie_coordinates(&x1, &y1, drawer.draw_pos, drawer.proportion);
 
-        draw_list->AddLine(ImVec2(x0, y0), ImVec2(x1, y1), color, global.movie.grid_line_width);
+        drawer.DrawLine(x0, y0, x1, y1, color, global.movie.grid_line_width);
     }
 }
 
@@ -994,15 +989,15 @@ void init_settings_menubar()
             {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
                 global.moviefilename[length] = '\0';
-                printf("At file choose: %s\n", global.moviefilename);
                 read_moviefile_data();
                 open_movie = false;
             }
             reset_zoom();
             global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
             global.current_frame = 0;
+            global.video.play = true;
         }
-        global.video.play = true;
+        // global.video.play = true;
         global.settings.open = -1;
     } 
     // else
@@ -1413,6 +1408,7 @@ void read_image(GLuint *texture, const char *filename)
     sf::Image img_data;
     if (!img_data.loadFromFile(filename))
     {
+        print_log();
         COLOR_ERROR;
         printf("ERROR (%s: line %d)\n\tCould not load '%s'.\n", strrchr(__FILE__, '/') + 1, __LINE__, filename);
         COLOR_DEFAULT;

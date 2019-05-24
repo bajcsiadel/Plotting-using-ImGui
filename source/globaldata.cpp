@@ -88,7 +88,7 @@ void initialize_global_data(char *filename)
 
     // initializing filename
     size_t len = strlen(filename);
-    char default_filename[] = "../../Time-Crystals/results/movies/05pinningsitesR.mvi";
+    char default_filename[] = "../../Time-Crystals/results/movies/00pinningforce_100particles_20190415_13150.mvi";
     global.length = (len != 0 ? len : strlen(default_filename)) + 1;
     global.moviefilename = (char *) malloc(global.length);
     if (len == 0) {
@@ -133,6 +133,7 @@ void read_moviefile_data(bool first_call)
 
     if ((extension = get_extension(global.moviefilename)) == NULL || strcmp(extension, movie_extension) != 0)
     {
+        print_log();
         COLOR_ERROR;
         printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, extension);
         COLOR_DEFAULT;
@@ -162,6 +163,7 @@ void read_moviefile_data(bool first_call)
         global.moviefile = ImFileOpen(global.moviefilename, "rb");
         if (global.moviefile == NULL)
         {
+            print_log();
             COLOR_ERROR;
             printf("ERROR (%s: line %d)\n\tCannot find/open movie file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.moviefilename);
             COLOR_DEFAULT;
@@ -190,6 +192,7 @@ void read_moviefile_data(bool first_call)
     {
         //pre-scan the file to find out how many frames/partciles we have
         //this could be modified to be capable of finding the frames that are complete
+        print_log();
         COLOR_NOTE;
         printf("Read movie file %s\n", global.moviefilename);
         COLOR_DEFAULT;
@@ -302,6 +305,7 @@ void read_statisticsfile_data(bool first_call)
 
     if (((extension = get_extension(global.statfilename)) == NULL) || strcmp(extension, stat_extension) != 0)
     {
+        print_log();
         COLOR_ERROR;
         printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, extension);
         COLOR_DEFAULT;
@@ -327,6 +331,7 @@ void read_statisticsfile_data(bool first_call)
         global.statfile = ImFileOpen(global.statfilename, "r");
         if (global.statfile == NULL)
         {
+            print_log();
             COLOR_ERROR;
             printf("ERROR (%s: line %d)\n\tCannot find/open statistics file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.statfilename);
             COLOR_DEFAULT;
@@ -349,6 +354,7 @@ void read_statisticsfile_data(bool first_call)
 
     if (can_read)
     {
+        print_log();
         COLOR_NOTE;
         printf("Read stat file %s\n", global.statfilename);
         COLOR_DEFAULT;
@@ -545,7 +551,6 @@ char* get_extension(const char *filename)
     for (i = len - 1; i >= 0 && (filename[i] != '.' && filename[i] != '/' && filename[i] != '\\'); i--);
     if (i == -1 || filename[i] == '/' || filename[i] == '\\') return NULL;
 
-    printf("%d %d %s %s\n",len,i,filename,substr(filename, i, len - i));
     return substr(filename, i, len - i);
 }
 
@@ -559,6 +564,16 @@ char* substr(const char* from, int start, int count)
     }
     result[n] = '\0';
     return result;
+}
+
+void print_log()
+{
+    time_t now = time(NULL);
+    char buff[20];
+    strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+    COLOR_LOG;
+    printf("LOG [%s]: ", buff);
+    COLOR_DEFAULT;
 }
 
 void replace_last(char *in, const char *to_replace, const char *replace_with)

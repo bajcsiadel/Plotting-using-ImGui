@@ -216,20 +216,23 @@ struct global_struct
 
 extern struct global_struct global;
 
-void reallocate_filenames(size_t);
-char *remove_extension(const char *filename);
-char *get_extension(const char *filename);
-char *substr(const char *, int, int);
-void replace_last(char *, const char *, const char *);
 void initialize_global_data(char *);
 
 void get_current_working_dir(char *);
+char *get_extension(const char *filename);
 void get_relative_path_to_project_root(char *, size_t);
 
 void free_arrays();
 
+void print_log();
+
 void read_moviefile_data(bool = true);
 void read_statisticsfile_data(bool = true);
+void reallocate_filenames(size_t);
+char *remove_extension(const char *filename);
+void replace_last(char *, const char *, const char *);
+
+char *substr(const char *, int, int);
 
 void write_frame_data_to_file();
 
