@@ -122,6 +122,7 @@ install_libraries:
 	sudo apt-get install pkg-config
 	sudo apt-get install libglfw3
 	sudo apt-get install libglfw3-dev
+	sudo apt-get install libsfml-dev
 	@echo $(GREEN)"Libraries has been installed!\n"$(DEFAULT)
 
 uninstall: clean
