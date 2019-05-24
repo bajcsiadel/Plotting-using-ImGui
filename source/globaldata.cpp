@@ -544,6 +544,8 @@ char* get_extension(const char *filename)
 
     for (i = len - 1; i >= 0 && (filename[i] != '.' && filename[i] != '/' && filename[i] != '\\'); i--);
     if (i == -1 || filename[i] == '/' || filename[i] == '\\') return NULL;
+
+    printf("%d %d %s %s\n",len,i,filename,substr(filename, i, len - i));
     return substr(filename, i, len - i);
 }
 
