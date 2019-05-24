@@ -985,7 +985,7 @@ void init_settings_menubar()
             {
                 // reallocating memory if the new filename is longer then the previous
                 // length calculates just the 'normal' characters so we have to increment by one because of the null-character
-                global.length = ++length;
+                global.length = length + 1;
                 global.moviefilename = (char *) realloc(global.moviefilename, length);
                 global.statfilename  = (char *) realloc(global.statfilename,  length);
             }
@@ -993,14 +993,15 @@ void init_settings_menubar()
             if (global.settings.open == 1)
             {
                 strncpy(global.statfilename, dlg.getChosenPath(), length);
-                global.statfilename[length - 1] = '\0';
+                global.statfilename[length] = '\0';
                 read_statisticsfile_data();
                 open_stats = false;
             }
             else if (global.settings.open == 0)
             {
                 strncpy(global.moviefilename, dlg.getChosenPath(), length);
-                global.moviefilename[length - 1] = '\0';
+                global.moviefilename[length] = '\0';
+                printf("At file choose: %s\n", global.moviefilename);
                 read_moviefile_data();
                 open_movie = false;
             }
