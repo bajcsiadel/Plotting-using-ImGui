@@ -1,7 +1,8 @@
 #ifndef color_h
 #define color_h
 
-// https://misc.flogisoft.com/bash/tip_colors_and_formatting
+// Colors for linux terminal: https://misc.flogisoft.com/bash/tip_colors_and_formatting
+// Colors for windowa terminal: https://ss64.com/nt/color.html
 
 #ifdef _WIN32
 	#include <windows.h>
