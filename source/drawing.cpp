@@ -27,6 +27,7 @@ struct DrawBase {
         virtual void DrawLine(double x1, double y1, double x2, double y2, ImVec4 color, double width) {};
         virtual void DrawCircle(double x, double y, double r, ImVec4 color) {};
         virtual void DrawCircleFilled(double x, double y, double r, ImVec4 color) {};
+        virtual void DrawRect(double x1, double y1, double x2, double y2, ImVec4 color) {};
 };
 
 struct WindowDraw : virtual public DrawBase
@@ -54,6 +55,10 @@ struct WindowDraw : virtual public DrawBase
 
         void DrawCircleFilled(double x, double y, double r, ImVec4 color) override {
             frame->AddCircleFilled(ImVec2(x, y), r, GetColor(color), 36);
+        }
+
+        void DrawRect(double x1, double y1, double x2, double y2, ImVec4 color) override {
+            frame->AddRect(ImVec2(x1, y1), ImVec2(x2, y2), GetColor(color));
         }
 };
 
@@ -90,6 +95,10 @@ struct WindowDraw : virtual public DrawBase
         void DrawCircleFilled(double x, double y, double r, ImVec4 color) override {
             circle(frame, cv::Point((int)x, (int)y), r, GetColor(color), -1, CV_AA);
         }
+
+        void DrawRect(double x1, double y1, double x2, double y2, ImVec4 color) override {
+            rectangle(frame, cv::Point(x1, y2), cv::Point(x2, y2), GetColor(color));
+        }
     };
 
 #endif
@@ -110,6 +119,38 @@ int setup_GLFW()
     if (!glfwInit())
         return 0;
     return 1;
+}
+
+void calculate_movie_limits()
+{
+    // movie window data
+    global.movie.width = global.video.width - 2 * global.window.margin;
+    int filename_height = ceil((double) strlen(global.moviefilename) * 8.0 / (double) (global.movie.width - 150)) * 13.5;
+    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - filename_height - 2; // filename height
+
+    global.movie.draw_x = global.movie.poz_x = 24;
+    global.movie.draw_y = global.movie.poz_y = 40 + filename_height;
+
+    if ((double) global.movie.width / (double) global.movie.height < abs(global.SX / global.SY))
+        // decresing height is needed so with this (global.movie.width * global.SY) / global.SX the rate would be equal, therefore this
+        // value is lower than the given height
+    {
+        global.movie.draw_y += (global.movie.height - ((double) global.movie.width * global.SY) / global.SX) / 2;
+        // padding
+        global.movie.draw_width = -10;
+    }
+    else
+        if ((double) global.movie.width / (double) global.movie.height > abs(global.SX / global.SY))
+        // decresing width is needed so with this (global.movie.height * global.SX) / global.SY the rate would be equal, therefore this
+        // value is lower than the given width
+        {
+            global.movie.draw_x += (global.movie.width - ((double) global.movie.height * global.SX) / global.SY) / 2;
+            // padding 
+            global.movie.draw_height = -10;
+        }
+
+    global.movie.draw_width  += global.movie.width  - 2 * (global.movie.draw_x - global.movie.poz_x);
+    global.movie.draw_height += global.movie.height - 2 * (global.movie.draw_y - global.movie.poz_y);
 }
 
 int init_window()
@@ -156,33 +197,7 @@ int init_window()
 
     set_video_buttons_location();
 
-    // movie window data
-    global.movie.width = global.video.width - 2 * global.window.margin;
-    global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
-
-    global.movie.draw_x = global.movie.poz_x = 24;
-    global.movie.draw_y = global.movie.poz_y = 56;
-
-    if ((double) global.movie.width / (double) global.movie.height < abs(global.SX / global.SY))
-        // decresing height is needed so with this (global.movie.width * global.SY) / global.SX the rate would be equal, therefore this
-        // value is lower than the given height
-    {
-        global.movie.draw_y += (global.movie.height - ((double) global.movie.width * global.SY) / global.SX) / 2;
-        // padding
-        global.movie.draw_width = -10;
-    }
-    else
-        if ((double) global.movie.width / (double) global.movie.height > abs(global.SX / global.SY))
-        // decresing width is needed so with this (global.movie.height * global.SX) / global.SY the rate would be equal, therefore this
-        // value is lower than the given width
-        {
-            global.movie.draw_x += (global.movie.width - ((double) global.movie.height * global.SX) / global.SY) / 2;
-            // padding 
-            global.movie.draw_height = -10;
-        }
-
-    global.movie.draw_width  += global.movie.width  - 2 * (global.movie.draw_x - global.movie.poz_x);
-    global.movie.draw_height += global.movie.height - 2 * (global.movie.draw_y - global.movie.poz_y);
+    calculate_movie_limits();
     
     reset_zoom();
 
@@ -203,6 +218,9 @@ int init_window()
 
     global.movie.show_particles = true;
     global.movie.show_pinningsites = true;
+    global.movie.show_margines = false;
+
+    global.movie.draw_list = NULL;
 
     // graph window data
     global.graph.width = global.video.width;
@@ -308,6 +326,11 @@ template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
     if (global.movie.show_grid_lines)
         draw_grid<Drawer>(drawer);
 
+    if (global.movie.show_margines)
+        drawer.DrawRect(global.movie.draw_x, global.movie.draw_y, 
+                        global.movie.draw_x + global.movie.draw_width, global.movie.draw_y + global.movie.draw_height, 
+                        colors[0]);
+
     n = 0;
     if (global.objects != NULL)
     {
@@ -374,7 +397,9 @@ template <typename Drawer = WindowDraw> void make_frame(Drawer drawer)
 void init_movie()
 {
     ImGui::BeginChild("##movieChild", ImVec2(global.movie.width, global.movie.height), true);
-        global.movie.draw_list = ImGui::GetWindowDrawList();
+        if (global.movie.draw_list == NULL)
+            global.movie.draw_list = ImGui::GetWindowDrawList();
+
         WindowDraw window_drawer(global.movie.draw_list);
         make_frame<>(window_drawer);
         zoom();
@@ -388,21 +413,9 @@ void init_video_window(bool *show_video_window)
     ImGui::Begin("Video", show_video_window,  
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | 
         ImGuiWindowFlags_NoMove);
-        // add_file_location(global.moviefilename);
-        ImGui::Text("%f x %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
+        add_file_location(global.moviefilename);
+        // ImGui::Text("%f x %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
         init_movie();
-        
-        // static GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
-        // // https://www.flaticon.com/packs/music
-        // if (global.current_frame == 10)
-        // {
-        //     read_image(&play_image, global.video.play_img_location);
-        //     read_image(&pause_image, global.video.pause_img_location);
-        //     read_image(&back_image, global.video.back_img_location);
-        //     read_image(&next_image, global.video.next_img_location);
-        //     read_image(&rewind_image, global.video.rewind_img_location);
-        //     read_image(&fastforward_image, global.video.fastforward_img_location);
-        // }
 
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
@@ -1016,7 +1029,7 @@ void init_settings_menubar()
                 open_movie = false;
             }
             reset_zoom();
-            global.movie.height = global.video.height - 5 * global.window.margin - global.video.button_size - ceil((double) strlen(global.moviefilename) * 6 / (double) (global.movie.width - 150)) * 13.5 - 2; // filename height
+            calculate_movie_limits();
             global.current_frame = 0;
             global.video.play = true;
         }
@@ -1190,6 +1203,26 @@ void init_settings_window(bool *show)
         if (global.objects == NULL) push_disable();
         if (ImGui::CollapsingHeader("Movie"))
         {
+            ImGui::Text("General");
+            ImGui::Text("System size: %.2f x %.2f", global.SX, global.SY);
+            ImGui::Checkbox("Show system margines", &global.movie.show_margines);
+            if (ImGui::IsMousePosValid())
+            {
+                double pos_x = ImGui::GetIO().MousePos.x, 
+                       pos_y = ImGui::GetIO().MousePos.y;
+                pos_x -= global.movie.draw_x;
+                pos_y -= global.movie.draw_y;
+                pos_x = pos_x * global.SX / global.movie.draw_width;
+                pos_y = pos_y * global.SY / global.movie.draw_height;
+                ImGui::Text("Cursor position: %.2f x %.2f", pos_x, pos_y);
+            } 
+            else
+            {
+                ImGui::Text("Cursor position: outside of the window");
+            }
+
+            ImGui::Separator();
+
             ImGui::Text("Pinningsites");
             if (global.N_pinningsites == 0) push_disable();
             ImGui::Checkbox("Show pinningsites", &global.movie.show_pinningsites);
