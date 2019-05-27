@@ -515,13 +515,6 @@ void free_arrays()
 
     free(global.path);
 
-    free(global.video.play_img_location);
-    free(global.video.pause_img_location);
-    free(global.video.rewind_img_location);
-    free(global.video.fastforward_img_location);
-    free(global.video.back_img_location);
-    free(global.video.next_img_location);
-
     if (global.moviefile_error) free(global.moviefile_error);
     if (global.statfile_error)  free(global.statfile_error);
     

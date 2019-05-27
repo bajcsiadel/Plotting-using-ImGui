@@ -81,13 +81,12 @@ struct video_window
     unsigned int button_size;
     bool play;
 
-    size_t location_length;
-    char *play_img_location;
-    char *pause_img_location;
-    char *rewind_img_location;
-    char *fastforward_img_location;
-    char *back_img_location;
-    char *next_img_location;
+    GLuint play_image, 
+           pause_image, 
+           back_image, 
+           next_image, 
+           rewind_image, 
+           fastforward_image;
 };
 
 struct movie_window

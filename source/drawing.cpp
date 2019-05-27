@@ -231,37 +231,57 @@ int init_window()
 
 void set_video_buttons_location()
 {
+    size_t location_length;
+    char *play_img_location;
+    char *pause_img_location;
+    char *rewind_img_location;
+    char *fastforward_img_location;
+    char *back_img_location;
+    char *next_img_location;
+
     global.path_length = 255;
     global.path = (char *) malloc(global.path_length);
     get_relative_path_to_project_root(global.path, global.path_length);
 
     // this is the max length of a  location
-    global.video.location_length = strlen(global.path) + 21;
+    location_length = strlen(global.path) + 21;
 
-    global.video.play_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.play_img_location, global.path);
-    strncat(global.video.play_img_location, "img/play.png", 12);
+    play_img_location = (char *) malloc(location_length);
+    strcpy(play_img_location, global.path);
+    strncat(play_img_location, "img/play.png", 12);
+    read_image(&global.video.play_image, play_img_location);
 
-    global.video.pause_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.pause_img_location, global.path);
-    strncat(global.video.pause_img_location, "img/pause.png", 13);
+    pause_img_location = (char *) malloc(location_length);
+    strcpy(pause_img_location, global.path);
+    strncat(pause_img_location, "img/pause.png", 13);
+    read_image(&global.video.pause_image, pause_img_location);
 
-    global.video.rewind_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.rewind_img_location, global.path);
-    strncat(global.video.rewind_img_location, "img/rewind.png", 14);
+    rewind_img_location = (char *) malloc(location_length);
+    strcpy(rewind_img_location, global.path);
+    strncat(rewind_img_location, "img/rewind.png", 14);
+    read_image(&global.video.rewind_image, rewind_img_location);
 
-    global.video.fastforward_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.fastforward_img_location, global.path);
-    strncat(global.video.fastforward_img_location, "img/fast-forward.png", 20);
+    fastforward_img_location = (char *) malloc(location_length);
+    strcpy(fastforward_img_location, global.path);
+    strncat(fastforward_img_location, "img/fast-forward.png", 20);
+    read_image(&global.video.fastforward_image, fastforward_img_location);
 
-    global.video.back_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.back_img_location, global.path);
-    strncat(global.video.back_img_location, "img/back.png", 12);
+    back_img_location = (char *) malloc(location_length);
+    strcpy(back_img_location, global.path);
+    strncat(back_img_location, "img/back.png", 12);
+    read_image(&global.video.back_image, back_img_location);
 
-    global.video.next_img_location = (char *) malloc(global.video.location_length);
-    strcpy(global.video.next_img_location, global.path);
-    strncat(global.video.next_img_location, "img/next.png", 12);
+    next_img_location = (char *) malloc(location_length);
+    strcpy(next_img_location, global.path);
+    strncat(next_img_location, "img/next.png", 12);
+    read_image(&global.video.next_image, next_img_location);
 
+    free(play_img_location);
+    free(pause_img_location);
+    free(rewind_img_location);
+    free(fastforward_img_location);
+    free(back_img_location);
+    free(next_img_location);
 }
 
 void reset_zoom()
@@ -372,43 +392,46 @@ void init_video_window(bool *show_video_window)
         ImGui::Text("%f x %f", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
         init_movie();
         
-        GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
-        // https://www.flaticon.com/packs/music
-        // read_image(&play_image, global.video.play_img_location);
-        // read_image(&pause_image, global.video.pause_img_location);
-        // read_image(&back_image, global.video.back_img_location);
-        // read_image(&next_image, global.video.next_img_location);
-        // read_image(&rewind_image, global.video.rewind_img_location);
-        // read_image(&fastforward_image, global.video.fastforward_img_location);
-        
+        // static GLuint play_image, pause_image, back_image, next_image, rewind_image, fastforward_image;
+        // // https://www.flaticon.com/packs/music
+        // if (global.current_frame == 10)
+        // {
+        //     read_image(&play_image, global.video.play_img_location);
+        //     read_image(&pause_image, global.video.pause_img_location);
+        //     read_image(&back_image, global.video.back_img_location);
+        //     read_image(&next_image, global.video.next_img_location);
+        //     read_image(&rewind_image, global.video.rewind_img_location);
+        //     read_image(&fastforward_image, global.video.fastforward_img_location);
+        // }
+
         ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0, 1.0, 1.0, 1.0));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, global.window.background_color);
 
         ImGui::Separator();
-        ImGui::ImageButton((void *) (intptr_t) back_image, ImVec2(global.video.button_size, global.video.button_size));
+        ImGui::ImageButton((void *) (intptr_t) global.video.back_image, ImVec2(global.video.button_size, global.video.button_size));
         if (ImGui::IsItemClicked())
             global.current_frame = 0;
         ImGui::SameLine();
 
-        ImGui::ImageButton((void *) (intptr_t) rewind_image, ImVec2(global.video.button_size, global.video.button_size));
+        ImGui::ImageButton((void *) (intptr_t) global.video.rewind_image, ImVec2(global.video.button_size, global.video.button_size));
         if (ImGui::IsItemClicked())
             global.video.step = (global.video.step != 1 ? global.video.step / 2 : global.video.step);
         ImGui::SameLine();
 
         if (global.video.play) 
-            ImGui::ImageButton((void *) (intptr_t) pause_image, ImVec2(global.video.button_size, global.video.button_size));
+            ImGui::ImageButton((void *) (intptr_t) global.video.pause_image, ImVec2(global.video.button_size, global.video.button_size));
         else
-            ImGui::ImageButton((void *) (intptr_t) play_image, ImVec2(global.video.button_size, global.video.button_size));
+            ImGui::ImageButton((void *) (intptr_t) global.video.play_image, ImVec2(global.video.button_size, global.video.button_size));
         if (ImGui::IsItemClicked())
             global.video.play = !global.video.play;
         ImGui::SameLine();
 
-        ImGui::ImageButton((void *) (intptr_t) fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
+        ImGui::ImageButton((void *) (intptr_t) global.video.fastforward_image, ImVec2(global.video.button_size, global.video.button_size));
         if (ImGui::IsItemClicked())
             global.video.step = (global.video.step < 128 ? global.video.step * 2 : global.video.step);
         ImGui::SameLine();
 
-        ImGui::ImageButton((void *) (intptr_t) next_image, ImVec2(global.video.button_size, global.video.button_size));
+        ImGui::ImageButton((void *) (intptr_t) global.video.next_image, ImVec2(global.video.button_size, global.video.button_size));
         if (ImGui::IsItemClicked())
             global.current_frame = global.N_frames - 1;
         ImGui::SameLine();
