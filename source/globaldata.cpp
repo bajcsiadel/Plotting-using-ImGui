@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <cstring>
+#include <cstdarg> // for void something(int arg, ...)
 
 struct global_struct global;
 
@@ -133,10 +134,8 @@ void read_moviefile_data(bool first_call)
 
     if ((extension = get_extension(global.moviefilename)) == NULL || strcmp(extension, movie_extension) != 0)
     {
-        print_log();
-        COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__,movie_extension, extension);
-        COLOR_DEFAULT;
+        print_log(ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Extension do not match", 
+            1 , "Expected %s but got %s", movie_extension, extension);
 
         global.moviefile_error = (char *) malloc(global.length);
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, extension);
@@ -559,7 +558,7 @@ char* substr(const char* from, int start, int count)
     return result;
 }
 
-void print_log()
+void print_log(LogTypes type, const char *filename, size_t line, const char* title, const int remarks ...)
 {
     time_t now = time(NULL);
     char buff[20];
@@ -567,6 +566,67 @@ void print_log()
     COLOR_LOG;
     printf("LOG [%s]: ", buff);
     COLOR_DEFAULT;
+
+    switch (type)
+    {
+    case ERROR:
+        COLOR_ERROR;
+        printf("ERROR ");
+        break;
+
+    case WARNING:
+        COLOR_WARNING;
+        printf("WARNING ");
+        break;
+
+    case NOTE:
+        COLOR_NOTE;
+        printf("NOTE ");
+        break;
+    
+    default:
+        COLOR_WARNING;
+        printf("WARNING: LogType not defined!");
+        break;
+    }
+    printf("(%s: line %d) ", filename, line);
+    if (title) printf("%s", title);
+    printf("\n");
+    COLOR_DEFAULT;
+
+    va_list args;
+    va_start(args, remarks);
+
+    for (int i = 0; i < remarks; i++) {
+        std::string s = va_arg(args, char *);
+        size_t found, previous = 0, pos = 0;
+        while ((found = s.find('%', pos)) != std::string::npos)
+        {
+            printf("%s", s.substr(previous, found - previous));
+            pos = found + 1;
+            if (found != 0 && s[found - 1] == '\\')
+                continue;
+
+            if (found != s.length())
+            {
+                switch (s[found + 1])
+                {
+                    case 's':
+                        std::string par = va_arg(args, char *);
+                        printf("%s", par);
+                        break;
+                    case 'd':
+                        int par = va_arg(args, int);
+                        printf("%d");
+                    case 'f':
+                        double par = va_arg(args, double);
+                        printf("%f");
+                }
+            }
+        }
+        printf("%s\n", s);
+    }
+    va_end(args);
 }
 
 void replace_last(char *in, const char *to_replace, const char *replace_with)

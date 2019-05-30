@@ -25,9 +25,9 @@ LIBS = `pkg-config --static --libs glfw3`
 # 2> /dev/null redirecting output if opencv is not installed
 opencv=$(shell pkg-config opencv --cflags 2> /dev/null)
 ifneq (,$(findstring -I, $(opencv)))
-	CXXFLAGS += `pkg-config --static --cflags opencv`
+	CXXFLAGS += `pkg-config --static --cflags opencv` `pkg-config --static --cflags libswscale` `pkg-config --static --cflags libavformat`
 	CXXFLAGS += -DOPENCV
-	LIBS += `pkg-config --static --libs opencv`
+	LIBS += `pkg-config --static --libs opencv` `pkg-config --static --libs libswscale` `pkg-config --static --libs libavformat`
 	OK = ok
 else
 	OK = not 

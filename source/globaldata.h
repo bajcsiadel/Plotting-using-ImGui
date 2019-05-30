@@ -214,6 +214,12 @@ struct global_struct
     struct stat_struct *stats;
 };
 
+enum LogTypes {
+    ERROR,
+    NOTE,
+    WARNING
+};
+
 extern struct global_struct global;
 
 void initialize_global_data(char *);
@@ -224,7 +230,7 @@ void get_relative_path_to_project_root(char *, size_t);
 
 void free_arrays();
 
-void print_log();
+void print_log(LogTypes type, const char *filename, size_t line, const char* title, const int remarks = 0 ...);
 
 void read_moviefile_data(bool = true);
 void read_statisticsfile_data(bool = true);
