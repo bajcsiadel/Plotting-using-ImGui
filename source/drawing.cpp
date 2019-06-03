@@ -166,9 +166,6 @@ int init_window()
     if (global.window.window == NULL)
     {
         print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not create window!");
-        COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tCould not create window!\n", strrchr(__FILE__, '/') + 1, __LINE__);
-        COLOR_DEFAULT;
         return 0;
     }
 
@@ -841,9 +838,6 @@ void add_video_stream(OutputStream *ost, AVFormatContext *oc,
     codec = avcodec_find_encoder(codec_id);
     if (!codec) {
         print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Codec not found.");
-        COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tCodec not found.\n", strrchr(__FILE__, '/') + 1, __LINE__);
-        COLOR_DEFAULT;
     }
 
     ost->st = avformat_new_stream(oc, NULL);
@@ -1018,17 +1012,12 @@ void save_video(bool *save_movie)
             }
             if (!fmt) {
                 print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not find suitable output format.");
-                COLOR_ERROR;
-                fprintf(stderr, "Could not find suitable output format\n");
                 return;
             }
 
             oc = avformat_alloc_context();
             if (!oc) {
                 print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Memory error.");
-                COLOR_ERROR;
-                printf("ERROR (%s: line %d)\n\tMemory error.\n", strrchr(__FILE__, '/') + 1, __LINE__);
-                COLOR_DEFAULT;
             }
             oc->oformat = fmt;
             
@@ -1044,9 +1033,6 @@ void save_video(bool *save_movie)
                 global.movie.width, global.movie.height, video_st.enc->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr);
             if (!swsctx) {
                 print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Failed to create scaler.");
-                COLOR_ERROR;
-                printf("ERROR (%s: line %d)\n\tFailed to create scaler.\n", strrchr(__FILE__, '/') + 1, __LINE__);
-                COLOR_DEFAULT;
             }
 
             // allocate frame buffer for encoding
@@ -1074,9 +1060,6 @@ void save_video(bool *save_movie)
             av_init_packet(&pkt);
             if (avcodec_encode_video2(video_st.enc, &pkt, frame, &got_pkt) < 0) {
                 print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not encode frame.");
-                COLOR_ERROR;
-                printf("ERROR (%s: line %d)\n\tCould not encode frame.\n", strrchr(__FILE__, '/') + 1, __LINE__);
-                COLOR_DEFAULT;
             }
 
             if (got_pkt) {
@@ -1663,9 +1646,6 @@ void read_image(GLuint *texture, const char *filename)
     if (!img_data.loadFromFile(filename))
     {
         print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not load image", 1, "From file: %s\n", filename);
-        COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tCould not load '%s'.\n", strrchr(__FILE__, '/') + 1, __LINE__, filename);
-        COLOR_DEFAULT;
     }
     glGenTextures(1, texture);
     glBindTexture(GL_TEXTURE_2D, *texture);
