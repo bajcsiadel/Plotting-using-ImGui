@@ -134,8 +134,8 @@ void read_moviefile_data(bool first_call)
 
     if ((extension = get_extension(global.moviefilename)) == NULL || strcmp(extension, movie_extension) != 0)
     {
-        print_log(ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Extension do not match", 
-            1 , "Expected %s but got %s", movie_extension, extension);
+        print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Extension do not match", 1,
+            "Expected %s but got %s\n", movie_extension, extension);
 
         global.moviefile_error = (char *) malloc(global.length);
         size_t len = snprintf(NULL, 0, "%s - Extension do not match. Expected %s but got %s", global.moviefilename, movie_extension, extension);
@@ -162,10 +162,8 @@ void read_moviefile_data(bool first_call)
         global.moviefile = ImFileOpen(global.moviefilename, "rb");
         if (global.moviefile == NULL)
         {
-            print_log();
-            COLOR_ERROR;
-            printf("ERROR (%s: line %d)\n\tCannot find/open movie file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.moviefilename);
-            COLOR_DEFAULT;
+            print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Cannot find/open movie file.", 1,
+                "%s\n", global.moviefilename);
 
             global.moviefile_error = (char *) malloc(global.length);
             size_t len = snprintf(NULL, 0, "%s - Cannot find/open movie file", global.moviefilename);
@@ -191,10 +189,6 @@ void read_moviefile_data(bool first_call)
     {
         //pre-scan the file to find out how many frames/partciles we have
         //this could be modified to be capable of finding the frames that are complete
-        print_log();
-        COLOR_NOTE;
-        printf("Read movie file %s\n", global.moviefilename);
-        COLOR_DEFAULT;
 
         global.moviefile_error = NULL;
 
@@ -259,8 +253,10 @@ void read_moviefile_data(bool first_call)
                     global.particle_r = global.objects[0][i].R;
         global.N_particles = global.N_objects - global.N_pinningsites; 
 
-        printf("Movie has %d frames\n", global.N_frames);
-        printf("Movie has %d objects in a frame from which %d particles and %d pinningsites\n", global.N_objects, global.N_particles, global.N_pinningsites);
+        print_log(stdout, NOTE, strrchr(__FILE__, '/') + 1, __LINE__, "Movie read.", 3,
+            "From file: %s\n", global.moviefilename,
+            "Movie has %d frames\n", global.N_frames,
+            "Movie has %d objects in a frame from which %d particles and %d pinningsites\n", global.N_objects, global.N_particles, global.N_pinningsites);
 
         fclose(global.moviefile);
     }
@@ -304,10 +300,7 @@ void read_statisticsfile_data(bool first_call)
 
     if (((extension = get_extension(global.statfilename)) == NULL) || strcmp(extension, stat_extension) != 0)
     {
-        print_log();
-        COLOR_ERROR;
-        printf("ERROR (%s: line %d)\n\tExtension do not match. Expected %s but got %s\n", strrchr(__FILE__, '/') + 1, __LINE__, stat_extension, extension);
-        COLOR_DEFAULT;
+        print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Extension do not match.", 1, "Expected %s but got %s\n", stat_extension, extension);
         
         // we know that statfile_error is NULL because it was deallocated at the beginning of the function
         global.statfile_error = (char *) malloc(global.length);
@@ -330,10 +323,7 @@ void read_statisticsfile_data(bool first_call)
         global.statfile = ImFileOpen(global.statfilename, "r");
         if (global.statfile == NULL)
         {
-            print_log();
-            COLOR_ERROR;
-            printf("ERROR (%s: line %d)\n\tCannot find/open statistics file: %s\n", strrchr(__FILE__, '/') + 1, __LINE__, global.statfilename);
-            COLOR_DEFAULT;
+            print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Cannot find/open file", 1, "%s\n", global.statfilename);
 
             global.statfile_error = (char *) malloc(global.length);
             size_t len = snprintf(NULL, 0, "%s - Cannot find/open statistics file", global.statfilename);
@@ -353,11 +343,6 @@ void read_statisticsfile_data(bool first_call)
 
     if (can_read)
     {
-        print_log();
-        COLOR_NOTE;
-        printf("Read stat file %s\n", global.statfilename);
-        COLOR_DEFAULT;
-
         global.statfile_error = NULL;
 
         // getting headers from file
@@ -432,8 +417,10 @@ void read_statisticsfile_data(bool first_call)
 
         // there will be a row with zeros because the end of file. Hence decreese the valueable number of raws.
         global.N_stats --;
-        printf("Statistics file has %d data\n", global.N_stats);
-        printf("Statistics file contains %zu nr. of data columns\n", global.number_of_columns + 1);
+        print_log(stdout, NOTE, strrchr(__FILE__, '/') + 1, __LINE__, "Statistics read.", 3, 
+            "From file: %s\n", global.statfilename,
+            "Statistics file has %d data\n", global.N_stats,
+            "Statistics file contains %zu nr. of data columns\n", global.number_of_columns + 1);
 
         global.graph.show_all = true;
         global.graph.show = (bool *) malloc(global.number_of_columns * sizeof(bool));
@@ -558,7 +545,23 @@ char* substr(const char* from, int start, int count)
     return result;
 }
 
-void print_log(LogTypes type, const char *filename, size_t line, const char* title, const int remarks ...)
+size_t number_of_percentage(char *format)
+{
+    size_t perc = 0;
+    bool backslash;
+    for (char *traverse = format; *traverse != '\0'; traverse++)
+    {
+        if (*traverse == '%' && !backslash)
+            perc ++;
+        if (*traverse == '\\')
+            backslash = true;
+        else
+            backslash = false;
+    }
+    return perc;
+}
+
+int print_log(FILE *stream, LogTypes type, const char *filename, const int line, const char *title, const size_t format_number ...)
 {
     time_t now = time(NULL);
     char buff[20];
@@ -594,39 +597,22 @@ void print_log(LogTypes type, const char *filename, size_t line, const char* tit
     printf("\n");
     COLOR_DEFAULT;
 
+    int done = 1;
     va_list args;
-    va_start(args, remarks);
-
-    for (int i = 0; i < remarks; i++) {
-        std::string s = va_arg(args, char *);
-        size_t found, previous = 0, pos = 0;
-        while ((found = s.find('%', pos)) != std::string::npos)
-        {
-            printf("%s", s.substr(previous, found - previous));
-            pos = found + 1;
-            if (found != 0 && s[found - 1] == '\\')
-                continue;
-
-            if (found != s.length())
-            {
-                switch (s[found + 1])
-                {
-                    case 's':
-                        std::string par = va_arg(args, char *);
-                        printf("%s", par);
-                        break;
-                    case 'd':
-                        int par = va_arg(args, int);
-                        printf("%d");
-                    case 'f':
-                        double par = va_arg(args, double);
-                        printf("%f");
-                }
-            }
-        }
-        printf("%s\n", s);
+    va_start(args, format_number);
+    size_t perc = 0;
+    for (size_t i = 0; i < format_number; i++)
+    {
+        char *format = va_arg(args, char *);
+        done &= vfprintf (stdout, format, args);
+        perc += number_of_percentage(format) + 1;
+        va_start(args, format_number);
+        for (size_t j = 0; j < perc; j++)
+            va_arg(args, int);
     }
     va_end(args);
+
+    return done;
 }
 
 void replace_last(char *in, const char *to_replace, const char *replace_with)

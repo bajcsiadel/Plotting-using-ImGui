@@ -230,7 +230,7 @@ void get_relative_path_to_project_root(char *, size_t);
 
 void free_arrays();
 
-void print_log(LogTypes type, const char *filename, size_t line, const char* title, const int remarks = 0 ...);
+int print_log(FILE *stream, LogTypes type, const char *filename, const int line, const char *title, const size_t format_number = 0 ...);
 
 void read_moviefile_data(bool = true);
 void read_statisticsfile_data(bool = true);
