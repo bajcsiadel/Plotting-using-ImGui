@@ -545,22 +545,6 @@ char* substr(const char* from, int start, int count)
     return result;
 }
 
-size_t number_of_percentage(char *format)
-{
-    size_t perc = 0;
-    bool backslash;
-    for (char *traverse = format; *traverse != '\0'; traverse++)
-    {
-        if (*traverse == '%' && !backslash)
-            perc ++;
-        if (*traverse == '\\')
-            backslash = true;
-        else
-            backslash = false;
-    }
-    return perc;
-}
-
 int print_log(FILE *stream, LogTypes type, const char *filename, const int line, const char *title, const size_t format_number ...)
 {
     time_t now = time(NULL);
@@ -600,15 +584,10 @@ int print_log(FILE *stream, LogTypes type, const char *filename, const int line,
     int done = 1;
     va_list args;
     va_start(args, format_number);
-    size_t perc = 0;
     for (size_t i = 0; i < format_number; i++)
     {
         char *format = va_arg(args, char *);
-        done &= vfprintf (stdout, format, args);
-        perc += number_of_percentage(format) + 1;
-        va_start(args, format_number);
-        for (size_t j = 0; j < perc; j++)
-            va_arg(args, int);
+        done &= vfprintf (stream, format, args);
     }
     va_end(args);
 

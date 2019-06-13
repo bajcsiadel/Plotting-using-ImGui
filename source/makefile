@@ -25,9 +25,9 @@ LIBS = `pkg-config --static --libs glfw3`
 # 2> /dev/null redirecting output if opencv is not installed
 opencv=$(shell pkg-config opencv --cflags 2> /dev/null)
 ifneq (,$(findstring -I, $(opencv)))
-	CXXFLAGS += `pkg-config --static --cflags opencv` `pkg-config --static --cflags libswscale` `pkg-config --static --cflags libavformat`
+	CXXFLAGS += `pkg-config --static --cflags opencv`
 	CXXFLAGS += -DOPENCV
-	LIBS += `pkg-config --static --libs opencv` `pkg-config --static --libs libswscale` `pkg-config --static --libs libavformat`
+	LIBS += `pkg-config --static --libs opencv`
 	OK = ok
 else
 	OK = not 
@@ -42,21 +42,21 @@ ifeq ($(OS),Windows_NT) #WINDOWS
 	GREEN = "[42m"
 	DEFAULT = "[0m"
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S), Linux) #LINUX
-		ECHO_MESSAGE = "Linux"
-		LIBS += -lGL -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
-	endif
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Linux) #LINUX
+	ECHO_MESSAGE = "Linux"
+	LIBS += -lGL -lpthread -L/usr/X11R6/lib -lm -lX11 -lsfml-graphics -lsfml-window -lsfml-system
+endif
 
-	ifeq ($(UNAME_S), Darwin) #APPLE
-		ECHO_MESSAGE = "Mac OS X"
-		LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
+ifeq ($(UNAME_S), Darwin) #APPLE
+	ECHO_MESSAGE = "Mac OS X"
+	LIBS += -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
 
-		CXXFLAGS += -I/usr/local/include
-	endif
+	CXXFLAGS += -I/usr/local/include
+endif
 
-	GREEN = "\033[0;32m"
-	DEFAULT = "\033[0m"
+GREEN = "\033[0;32m"
+DEFAULT = "\033[0m"
 endif
 
 CXXFLAGS += -Wall -Wformat -Wunused-variable -std=c++11
@@ -68,7 +68,7 @@ $(OUT_DIR)%.o: $(OUT_DIR)%.cpp
 	@echo "Create \t $@"
 
 # this will be executed if we write in terminal just make
-all: clean create
+all: create
 
 create: directories copy_all $(EXE) delete_copies
 	@if [ $(OK) != ok ]; then \
@@ -103,7 +103,7 @@ delete_copies:
 	@rm -f $(OUT_DIR)*.cpp $(OUT_DIR)*.h
 
 # execute rule directories if needed (if directories does not exist)
-.PHONY: directories
+.PHONY: directories install uninstall
 
 directories: $(DIRECTORIES)
 
@@ -119,6 +119,7 @@ install: install_libraries create
 # this will install the dependent libraries besides compiling the code
 install_libraries:
 	sudo apt-get update
+	sudo apt-get install gcc
 	sudo apt-get install pkg-config
 	sudo apt-get install libglfw3
 	sudo apt-get install libglfw3-dev

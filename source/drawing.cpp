@@ -19,15 +19,6 @@
 #include <ctime>
 #include <iostream>
 
-extern "C"
-{
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/avutil.h>
-#include <libavutil/pixdesc.h>
-#include <libswscale/swscale.h>
-}
-
 struct DrawBase {
     public:
         ImVec2 draw_pos;
@@ -817,79 +808,6 @@ void calculate_coordinates_on_graph(int i)
     free(data1);
 }
 
-#ifdef OPENCV
-struct OutputStream {
-    AVStream *st;
-    AVCodecContext *enc;
-    /* pts of the next frame that will be generated */
-    int64_t next_pts;
-    AVFrame *frame;
-    AVFrame *tmp_frame;
-    float t, tincr, tincr2;
-    struct SwsContext *sws_ctx;
-};
-
-void add_video_stream(OutputStream *ost, AVFormatContext *oc,
-                      enum AVCodecID codec_id)
-{
-    AVCodecContext *c;
-    AVCodec *codec;
-    /* find the video encoder */
-    codec = avcodec_find_encoder(codec_id);
-    if (!codec) {
-        print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Codec not found.");
-    }
-
-    ost->st = avformat_new_stream(oc, NULL);
-    if (!ost->st) {
-        fprintf(stderr, "Could not alloc stream\n");
-        exit(1);
-    }
-
-    c = avcodec_alloc_context3(codec);
-    if (!c) {
-        fprintf(stderr, "Could not alloc an encoding context\n");
-        exit(1);
-    }
-
-    ost->enc = c;
-    /* Put sample parameters. */
-    c->bit_rate = 400000;
-    /* Resolution must be a multiple of two. */
-    c->width = global.movie.width;
-    c->height = global.movie.height;
-    /* timebase: This is the fundamental unit of time (in seconds) in terms
-     * of which frame timestamps are represented. For fixed-fps content,
-     * timebase should be 1/framerate and timestamp increments should be
-     * identical to 1. */
-    ost->st->time_base  = (AVRational){ 1, 30 };
-    c->time_base        = ost->st->time_base;
-    c->gop_size         = 12; /* emit one intra frame every twelve frames at most */
-    c->pix_fmt          = AV_PIX_FMT_YUV420P;
-    if (c->codec_id == AV_CODEC_ID_MPEG2VIDEO) {
-        /* just for testing, we also add B-frames */
-        c->max_b_frames = 2;
-    }
-    if (c->codec_id == AV_CODEC_ID_MPEG1VIDEO) {
-        /* Needed to avoid using macroblocks in which some coeffs overflow.
-         * This does not happen with normal video, it just happens here as
-         * the motion of the chroma plane does not match the luma plane. */
-        c->mb_decision = 2;
-    }
-    /* Some formats want stream headers to be separate. */
-    if (oc->oformat->flags & AVFMT_GLOBALHEADER)
-        c->flags |= AV_CODEC_FLAG_GLOBAL_HEADER;
-}
-
-void close_stream(AVFormatContext *oc, OutputStream *ost)
-{
-    avcodec_free_context(&ost->enc);
-    av_frame_free(&ost->frame);
-    av_frame_free(&ost->tmp_frame);
-    sws_freeContext(ost->sws_ctx);
-}
-#endif
-
 void save_video(bool *save_movie)
 {
 #ifdef OPENCV
@@ -976,7 +894,7 @@ void save_video(bool *save_movie)
         {
             ImGui::ProgressBar((double) (global.save.current - global.save.from) / (double) (global.save.to - global.save.from), ImVec2(-1.0, 0.0));
             // write to video file I choose
-            /*static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 60, cv::Size(global.movie.width, global.movie.height));
+            static cv::VideoWriter video(global.save.filename, CV_FOURCC('M','J','P','G'), 60, cv::Size(global.movie.width, global.movie.height));
             VideoDraw video_drawer = { .width         = global.movie.width, 
                                        .height        = global.movie.height, 
                                        .padding       = global.save.padding, 
@@ -993,96 +911,6 @@ void save_video(bool *save_movie)
                 COLOR_NOTE;
                 printf("File saved to %s\n", global.save.filename);
                 COLOR_DEFAULT;
-            }*/
-            static OutputStream video_st = { 0 };
-            AVOutputFormat *fmt;
-            AVFormatContext *oc;
-            int have_video = 0;
-            int encode_video = 0;
-
-            static unsigned nb_frames = 0;
-            static int got_pkt = 0;
-            /* Initialize libavcodec, and register all codecs and formats. */
-            av_register_all();
-
-            fmt = av_guess_format(NULL, global.save.filename, NULL);
-            if (!fmt) {
-                printf("Could not deduce output format from file extension: using MPEG.\n");
-                fmt = av_guess_format("mpeg", NULL, NULL);
-            }
-            if (!fmt) {
-                print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not find suitable output format.");
-                return;
-            }
-
-            oc = avformat_alloc_context();
-            if (!oc) {
-                print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Memory error.");
-            }
-            oc->oformat = fmt;
-            
-            if (fmt->video_codec != AV_CODEC_ID_NONE) {
-                add_video_stream(&video_st, oc, fmt->video_codec);
-                have_video = 1;
-                encode_video = 1;
-            }
-            avformat_write_header(oc, NULL);
-
-            SwsContext* swsctx = sws_getCachedContext(
-                nullptr, global.movie.width, global.movie.height, AV_PIX_FMT_BGR24,
-                global.movie.width, global.movie.height, video_st.enc->pix_fmt, SWS_BICUBIC, nullptr, nullptr, nullptr);
-            if (!swsctx) {
-                print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Failed to create scaler.");
-            }
-
-            // allocate frame buffer for encoding
-            static AVFrame *frame = av_frame_alloc();
-            std::vector<uint8_t> framebuf(avpicture_get_size(video_st.enc->pix_fmt, global.movie.width, global.movie.height));
-            avpicture_fill(reinterpret_cast<AVPicture*>(frame), framebuf.data(), video_st.enc->pix_fmt, global.movie.width, global.movie.height);
-            frame->width = global.movie.width;
-            frame->height = global.movie.height;
-            frame->format = static_cast<int>(video_st.enc->pix_fmt);
-
-            avformat_write_header(oc, nullptr);
-
-            VideoDraw video_drawer = { .width         = global.movie.width, 
-                                       .height        = global.movie.height, 
-                                       .padding       = global.save.padding, 
-                                       .current_frame = global.save.current };
-            make_frame<VideoDraw>(video_drawer);
-            const int stride[] = { static_cast<int>(video_drawer.frame.step[0]) };
-            sws_scale(swsctx, &video_drawer.frame.data, stride, 0, video_drawer.frame.rows, frame->data, frame->linesize);
-            frame->pts = video_st.next_pts++;
-            // encode video frame
-            AVPacket pkt;
-            pkt.data = nullptr;
-            pkt.size = 0;
-            av_init_packet(&pkt);
-            if (avcodec_encode_video2(video_st.enc, &pkt, frame, &got_pkt) < 0) {
-                print_log(stdout, ERROR, strrchr(__FILE__, '/') + 1, __LINE__, "Could not encode frame.");
-            }
-
-            if (got_pkt) {
-                // rescale packet timestamp
-                pkt.duration = 1;
-                av_packet_rescale_ts(&pkt, video_st.enc->time_base, video_st.enc->time_base);
-                // write packet
-                av_write_frame(oc, &pkt);
-                std::cout << nb_frames << '\r' << std::flush;  // dump progress
-                ++nb_frames;
-            }
-            av_free_packet(&pkt);
-            global.save.current += global.video.step;
-            if (global.save.current > global.save.to || ImGui::Button("Cancel##Progress"))
-            {
-                av_write_trailer(oc);
-                std::cout << nb_frames << " frames encoded" << std::endl;
-
-                close_stream(oc, &video_st);
-                if (!(fmt->flags & AVFMT_NOFILE))
-                    /* Close the output file. */
-                    avio_close(oc->pb);
-                avformat_free_context(oc);
             }
             ImGui::EndPopup();
         }
@@ -1363,7 +1191,7 @@ void init_settings_window(bool *show)
 {
     ImGui::SetNextWindowPos(ImVec2(global.settings.poz_x, global.settings.poz_y));
     ImGui::SetNextWindowSize(ImVec2(global.settings.width, global.settings.height));
-    ImGui::Begin("Settings", show,  
+    ImGui::Begin("Settings", show,
         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_MenuBar);
 
@@ -1380,8 +1208,8 @@ void init_settings_window(bool *show)
                 double pos_x = ImGui::GetIO().MousePos.x, 
                        pos_y = ImGui::GetIO().MousePos.y;
 
-                if (pos_x < global.movie.draw_x || pos_x > global.movie.draw_x + global.movie.draw_width ||
-                    pos_y < global.movie.draw_y || pos_y > global.movie.draw_y + global.movie.draw_height)
+                if (pos_x < global.movie.draw_x - 5 || pos_x > global.movie.draw_x + global.movie.draw_width + 5 ||
+                    pos_y < global.movie.draw_y - 5 || pos_y > global.movie.draw_y + global.movie.draw_height + 5)
                 {
                     ImGui::Text("Cursor position: out of movie");
                 }
@@ -1389,7 +1217,7 @@ void init_settings_window(bool *show)
                 {
                     pos_x -= global.movie.draw_x;
                     pos_y -= global.movie.draw_y;
-                    pos_x = pos_x * global.SX / global.movie.draw_width;
+                    pos_x = global.SX - pos_x * global.SX / global.movie.draw_width;
                     pos_y = pos_y * global.SY / global.movie.draw_height;
                     ImGui::Text("Cursor position: %.2f x %.2f", pos_x, pos_y);
                 }
