@@ -1217,8 +1217,8 @@ void init_settings_window(bool *show)
                 {
                     pos_x -= global.movie.draw_x;
                     pos_y -= global.movie.draw_y;
-                    pos_x = global.SX - pos_x * global.SX / global.movie.draw_width;
-                    pos_y = pos_y * global.SY / global.movie.draw_height;
+                    pos_x = pos_x * global.SX / global.movie.draw_width;
+                    pos_y = global.SY - pos_y * global.SY / global.movie.draw_height;
                     ImGui::Text("Cursor position: %.2f x %.2f", pos_x, pos_y);
                 }
             } 
